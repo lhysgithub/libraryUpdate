@@ -36,6 +36,7 @@ public class Utils {
             String version = strSubstitutor_forv.replace(dependency.getVersion());
             returnMap.put(groupId + "\t" + artifactId, version);
         }
+        fis.close();
         return returnMap;
     }
 

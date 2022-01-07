@@ -3,7 +3,9 @@ package com.pku.libupgrade.clientAnalysis;
 
 import com.pku.libupgrade.Utils;
 import org.eclipse.jgit.api.CheckoutCommand;
+import org.eclipse.jgit.api.CleanCommand;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -11,6 +13,7 @@ import org.eclipse.jgit.lib.RepositoryBuilder;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.filter.RevFilter;
+import org.eclipse.osgi.service.security.TrustEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -135,6 +138,10 @@ public class ClientAnalysis {
     public void checkout(Repository repository, String commitId) throws Exception {
         this.logger.info("Checking out {} {} ...", repository.getDirectory().getParent().toString(), commitId);
         try (Git git = new Git(repository)) {
+            CleanCommand clean = git.clean().setForce(true);
+            clean.call();
+            ResetCommand reset = git.reset().setMode(ResetCommand.ResetType.HARD);
+            reset.call();
             CheckoutCommand checkout = git.checkout().setName(commitId);
             checkout.call();
         }
@@ -142,7 +149,7 @@ public class ClientAnalysis {
 
 
     public static void main(String[] args) throws Exception {
-        String projectPath = "D:\\libupdata\\dataset";
+        String projectPath = "../dataset/";
         String projectName = "plantuml";
         ClientAnalysis clientAnalysis = new ClientAnalysis();
         Repository repository = clientAnalysis.openRepository(projectPath, projectName);
@@ -163,7 +170,7 @@ public class ClientAnalysis {
             System.out.println(totPomInfoMap);
 
             i += 1;
-            if (i > 10) {
+            if (i > 100) {
                 break;
             }
 
