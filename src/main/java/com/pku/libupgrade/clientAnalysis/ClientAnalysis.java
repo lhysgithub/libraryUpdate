@@ -161,10 +161,16 @@ public class ClientAnalysis {
             System.out.println(commitId);
             clientAnalysis.checkout(repository, commitId);
             clientAnalysis.recordPomFilePath = new ArrayList<>();
-            clientAnalysis.getPomPath(new File(projectPath + "\\" + projectName));
+            clientAnalysis.getPomPath(new File(projectPath + "/" + projectName));
             Map<String, Map<String, String>> totPomInfoMap = new HashMap<>();
             for (String pomPath : clientAnalysis.recordPomFilePath) {
-                Map<String, String> pomInfoMap = Utils.readOutLibraries(pomPath);
+                Map<String, String> pomInfoMap = new HashMap<>();
+                try {
+                    pomInfoMap = Utils.readOutLibraries(pomPath);
+                }
+                catch (Exception e){
+                    System.out.println("Error occurred but program continues");
+                }
                 totPomInfoMap.put(pomPath.replace(projectPath, ""), pomInfoMap);
             }
             System.out.println(totPomInfoMap);
