@@ -1,6 +1,9 @@
 package com.pku.libupgrade.clientAnalysis;
 
 
+import com.pku.libupgrade.Commit;
+import com.pku.libupgrade.DiffCommit;
+import com.pku.libupgrade.MongoDBJDBC;
 import com.pku.libupgrade.Utils;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.CleanCommand;
@@ -150,13 +153,15 @@ public class ClientAnalysis {
 
     public static void main(String[] args) throws Exception {
         String projectPath = "../dataset/";
-        String projectName = "plantuml";
+        String projectName = "arthas";
         ClientAnalysis clientAnalysis = new ClientAnalysis();
         Repository repository = clientAnalysis.openRepository(projectPath, projectName);
         List<String> commitIds = clientAnalysis.getAllCommitId(repository, "master");
-        System.out.println(commitIds.size());
-        System.out.println(commitIds);
+        System.out.println("commits' size: "+commitIds.size());
+//        System.out.println(commitIds);
         int i = 0;
+        List<Commit> versionMap = new ArrayList<>();
+        // commit pomName libName versionName
         for (String commitId : commitIds) {
             System.out.println(commitId);
             clientAnalysis.checkout(repository, commitId);
@@ -169,7 +174,8 @@ public class ClientAnalysis {
                     pomInfoMap = Utils.readOutLibraries(pomPath);
                 }
                 catch (Exception e){
-                    System.out.println("Error occurred but program continues");
+//                    System.out.println("Error occurred but program continues");
+                    ;
                 }
                 totPomInfoMap.put(pomPath.replace(projectPath, ""), pomInfoMap);
             }
@@ -179,9 +185,14 @@ public class ClientAnalysis {
             if (i > 100) {
                 break;
             }
-
+            versionMap.add(new Commit(commitId,totPomInfoMap));
         }
-
+        List<DiffCommit> diffList = Utils.getDiffList(versionMap, projectPath+projectName);
+        System.out.println("diffList size: "+diffList.size());
+        for (DiffCommit it : diffList){
+            it.print();
+            MongoDBJDBC.insertCommitDiff(it);
+        }
 
     }
 
