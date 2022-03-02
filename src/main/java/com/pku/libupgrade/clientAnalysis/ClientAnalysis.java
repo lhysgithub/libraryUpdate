@@ -24,6 +24,8 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static com.pku.libupgrade.GithubConnection.getGitUrl;
+
 public class ClientAnalysis {
     private class RevFilterCommitValid extends RevFilter {
 
@@ -150,10 +152,7 @@ public class ClientAnalysis {
         }
     }
 
-
-    public static void main(String[] args) throws Exception {
-        String projectPath = "../dataset/";
-        String projectName = "arthas";
+    public static void detectVersionChange(String projectPath, String projectName) throws Exception {
         ClientAnalysis clientAnalysis = new ClientAnalysis();
         Repository repository = clientAnalysis.openRepository(projectPath, projectName);
         List<String> commitIds = clientAnalysis.getAllCommitId(repository, "master");
@@ -191,9 +190,25 @@ public class ClientAnalysis {
         System.out.println("diffList size: "+diffList.size());
         for (DiffCommit it : diffList){
             it.print();
-            MongoDBJDBC.insertCommitDiff(it);
+//            MongoDBJDBC.insertCommitDiff(it);
         }
+    }
 
+    public static void main(String[] args) throws Exception {
+        String projectPath = "../dataset/";
+        String projectName = "fastjson";
+        String url = getGitUrl(projectName);
+        // 遍历所有repository
+//        File file = new File(projectPath);
+//        File[] fs = file.listFiles();
+//        assert fs != null;
+//        for(File f:fs){					        //遍历File[]数组
+//            if(f.isDirectory())
+//                projectName = f.getName();
+//                System.out.println(f.getName());
+//                detectVersionChange(projectPath,projectName);
+//        }
+        detectVersionChange(projectPath,projectName);
     }
 
 }
