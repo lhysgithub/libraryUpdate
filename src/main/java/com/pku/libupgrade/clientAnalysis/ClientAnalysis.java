@@ -155,7 +155,8 @@ public class ClientAnalysis {
     public static void detectVersionChange(String projectPath, String projectName) throws Exception {
         ClientAnalysis clientAnalysis = new ClientAnalysis();
         Repository repository = clientAnalysis.openRepository(projectPath, projectName);
-        List<String> commitIds = clientAnalysis.getAllCommitId(repository, "master");
+        List<String> commitIds = clientAnalysis.getAllCommitId(repository, "master"); // todo: if not have master branch
+//        System.out.println("repository.getBranch:"+repository.getBranch());
         System.out.println("commits' size: "+commitIds.size());
 //        System.out.println(commitIds);
         int i = 0;
@@ -163,7 +164,13 @@ public class ClientAnalysis {
         // commit pomName libName versionName
         for (String commitId : commitIds) {
             System.out.println(commitId);
-            clientAnalysis.checkout(repository, commitId);
+            try {
+                clientAnalysis.checkout(repository, commitId);
+            }
+            catch (Exception e){
+                System.out.println(e.toString());
+                break; // todo: delete repo and clone again
+            }
             clientAnalysis.recordPomFilePath = new ArrayList<>();
             clientAnalysis.getPomPath(new File(projectPath + "/" + projectName));
             Map<String, Map<String, String>> totPomInfoMap = new HashMap<>();
@@ -174,41 +181,44 @@ public class ClientAnalysis {
                 }
                 catch (Exception e){
 //                    System.out.println("Error occurred but program continues");
-                    ;
+                    ; // todo: may has bug in pom parser
                 }
                 totPomInfoMap.put(pomPath.replace(projectPath, ""), pomInfoMap);
             }
             System.out.println(totPomInfoMap);
 
             i += 1;
-            if (i > 100) {
-                break;
-            }
+            // debug
+//            if (i > 100) {
+//                break;
+//            }
             versionMap.add(new Commit(commitId,totPomInfoMap));
         }
-        List<DiffCommit> diffList = Utils.getDiffList(versionMap, projectPath+projectName);
+        List<DiffCommit> diffList = Utils.getDiffList(versionMap, projectName);
         System.out.println("diffList size: "+diffList.size());
         for (DiffCommit it : diffList){
             it.print();
-//            MongoDBJDBC.insertCommitDiff(it);
+            MongoDBJDBC.insertCommitDiff(it);
         }
     }
 
     public static void main(String[] args) throws Exception {
         String projectPath = "../dataset/";
-        String projectName = "fastjson";
-        String url = getGitUrl(projectName);
+        String projectName = "neo4j";
+//        detectVersionChange(projectPath,projectName);
+//        String url = getGitUrl(projectName);
+//        MongoDBJDBC.findPopularLib();
         // 遍历所有repository
-//        File file = new File(projectPath);
-//        File[] fs = file.listFiles();
-//        assert fs != null;
-//        for(File f:fs){					        //遍历File[]数组
-//            if(f.isDirectory())
-//                projectName = f.getName();
-//                System.out.println(f.getName());
-//                detectVersionChange(projectPath,projectName);
-//        }
-        detectVersionChange(projectPath,projectName);
+        File file = new File(projectPath);
+        File[] fs = file.listFiles();
+        assert fs != null;
+        for(File f:fs){					        //遍历File[]数组
+            if(f.isDirectory())
+                projectName = f.getName();
+                System.out.println(f.getName());
+                detectVersionChange(projectPath,projectName);
+        }
+        MongoDBJDBC.findPopularLib();
     }
 
 }
