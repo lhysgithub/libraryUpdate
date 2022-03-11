@@ -36,7 +36,7 @@ public class ClientAnalysis {
             diffTimestamp = this.calcDiffTimeCommit(c);
 
             if (c.getParentCount() > 1) {//merge
-                logger.info("Merge of the branches deleted. [commitId=" + c.getId().getName() + "]");
+//                logger.debug("Merge of the branches deleted. [commitId=" + c.getId().getName() + "]");
                 return false;
             }
             //TODO: create other filter to date.
@@ -75,7 +75,7 @@ public class ClientAnalysis {
         }
     }
 
-    private Logger logger = LoggerFactory.getLogger(ClientAnalysis.class);
+    private static Logger logger = LoggerFactory.getLogger(ClientAnalysis.class);
     public List<String> recordPomFilePath = new ArrayList<>();
 
     public void getPomPath(File f) {
@@ -95,7 +95,7 @@ public class ClientAnalysis {
         File folder = new File(Utils.getPathProject(path, projectName));
         Repository repository = null;
 
-        this.logger.info(projectName + " exists. Reading properties ... (wait)");
+//        this.logger.debug(projectName + " exists. Reading properties ... (wait)");
         RepositoryBuilder builder = new RepositoryBuilder();
         repository = builder
                 .setGitDir(new File(folder, ".git"))
@@ -141,25 +141,31 @@ public class ClientAnalysis {
     }
 
     public void checkout(Repository repository, String commitId) throws Exception {
-        this.logger.info("Checking out {} {} ...", repository.getDirectory().getParent().toString(), commitId);
+//        this.logger.debug("Checking out {} {} ...", repository.getDirectory().getParent().toString(), commitId);
         try (Git git = new Git(repository)) {
             CleanCommand clean = git.clean().setForce(true);
             clean.call();
             ResetCommand reset = git.reset().setMode(ResetCommand.ResetType.HARD);
             reset.call();
-            CheckoutCommand checkout = git.checkout().setName(commitId);
+            CheckoutCommand checkout = git.checkout().setName(commitId).setForce(true);
             checkout.call();
         }
     }
 
     public static void detectVersionChange(String projectPath, String projectName) throws Exception {
+        String indexPath =projectPath+"/"+projectName+"/.git/index.lock";
+        File file1 = new File(indexPath);
+        if (file1.exists()){
+            file1.delete();
+        }
+
         ClientAnalysis clientAnalysis = new ClientAnalysis();
         Repository repository = clientAnalysis.openRepository(projectPath, projectName);
         List<String> commitIds = clientAnalysis.getAllCommitId(repository, "master"); // todo: if not have master branch
 //        System.out.println("repository.getBranch:"+repository.getBranch());
-        System.out.println("commits' size: "+commitIds.size());
+        System.out.println("projectName: "+ projectName + "commits' size: "+commitIds.size());
 //        System.out.println(commitIds);
-        int i = 0;
+//        int i = 0;
         List<Commit> versionMap = new ArrayList<>();
         // commit pomName libName versionName
         for (String commitId : commitIds) {
@@ -168,8 +174,8 @@ public class ClientAnalysis {
                 clientAnalysis.checkout(repository, commitId);
             }
             catch (Exception e){
-                System.out.println(e.toString());
-                break; // todo: delete repo and clone again
+                ClientAnalysis.logger.error(e.toString());
+                break;
             }
             clientAnalysis.recordPomFilePath = new ArrayList<>();
             clientAnalysis.getPomPath(new File(projectPath + "/" + projectName));
@@ -180,14 +186,15 @@ public class ClientAnalysis {
                     pomInfoMap = Utils.readOutLibraries(pomPath);
                 }
                 catch (Exception e){
-//                    System.out.println("Error occurred but program continues");
+                    ClientAnalysis.logger.error("pom parse error occurred but program continues");
+                    e.printStackTrace();
                     ; // todo: may has bug in pom parser
                 }
                 totPomInfoMap.put(pomPath.replace(projectPath, ""), pomInfoMap);
             }
             System.out.println(totPomInfoMap);
 
-            i += 1;
+//            i += 1;
             // debug
 //            if (i > 100) {
 //                break;
@@ -198,27 +205,28 @@ public class ClientAnalysis {
         System.out.println("diffList size: "+diffList.size());
         for (DiffCommit it : diffList){
             it.print();
-            MongoDBJDBC.insertCommitDiff(it);
+            it.saveCSV();
+//            MongoDBJDBC.insertCommitDiff(it);
         }
     }
 
     public static void main(String[] args) throws Exception {
         String projectPath = "../dataset/";
-        String projectName = "neo4j";
-//        detectVersionChange(projectPath,projectName);
+        String projectName = "plantuml";
+        detectVersionChange(projectPath,projectName);
 //        String url = getGitUrl(projectName);
 //        MongoDBJDBC.findPopularLib();
         // 遍历所有repository
-        File file = new File(projectPath);
-        File[] fs = file.listFiles();
-        assert fs != null;
-        for(File f:fs){					        //遍历File[]数组
-            if(f.isDirectory())
-                projectName = f.getName();
-                System.out.println(f.getName());
-                detectVersionChange(projectPath,projectName);
-        }
-        MongoDBJDBC.findPopularLib();
+//        File file = new File(projectPath);
+//        File[] fs = file.listFiles();
+//        assert fs != null;
+//        for(File f:fs){					        //遍历File[]数组
+//            if(f.isDirectory())
+//                projectName = f.getName();
+//                System.out.println(f.getName());
+//                detectVersionChange(projectPath,projectName);
+//        }
+//        MongoDBJDBC.findPopularLib();
     }
 
 }

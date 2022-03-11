@@ -1,5 +1,9 @@
 package com.pku.libupgrade;
 
+import org.apache.maven.artifact.InvalidRepositoryException;
+import org.apache.maven.project.ProjectBuildingException;
+import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
+
 import static com.pku.libupgrade.PomParser.MAVEN_CENTRAL_URI;
 import static com.pku.libupgrade.PomParser.USER_LOCAL_REPO;
 
@@ -8,7 +12,7 @@ import java.util.*;
 
 public class Utils {
 
-    public static Map<String, String> readOutLibraries(String pom){
+    public static Map<String, String> readOutLibraries(String pom) {
         String localRepo = System.getProperty("maven.repo.local", USER_LOCAL_REPO);
 
         String remoteReposString = System.getProperty("maven.repo.remote", MAVEN_CENTRAL_URI);

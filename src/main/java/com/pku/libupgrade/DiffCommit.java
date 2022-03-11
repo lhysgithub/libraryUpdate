@@ -1,5 +1,10 @@
 package com.pku.libupgrade;
 
+import com.csvreader.CsvReader;
+import com.csvreader.CsvWriter;
+
+import java.io.*;
+
 public class DiffCommit {
     String commit;
     String newCommit;
@@ -30,5 +35,18 @@ public class DiffCommit {
         System.out.println("oldVersion: "+oldVersion);
         System.out.println("newVersion: "+newVersion);
         System.out.println("");
+    }
+    public void saveCSV(){
+        File outFile  = new File("commitDiff.csv");
+        try{
+            BufferedWriter writer = new BufferedWriter(new FileWriter(outFile,true));
+            CsvWriter csvWriter = new CsvWriter(writer,',');
+
+            csvWriter.write(clientName+","+newCommit+","+commit+","+pomName+","+libName+","+isNew.toString()+","+newVersion+","+ oldVersion);
+            csvWriter.endRecord();
+            csvWriter.close();
+        }catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
