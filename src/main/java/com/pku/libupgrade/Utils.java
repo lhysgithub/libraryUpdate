@@ -1,13 +1,11 @@
 package com.pku.libupgrade;
 
-import org.apache.maven.artifact.InvalidRepositoryException;
-import org.apache.maven.project.ProjectBuildingException;
-import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
+import com.csvreader.CsvReader;
 
 import static com.pku.libupgrade.PomParser.MAVEN_CENTRAL_URI;
 import static com.pku.libupgrade.PomParser.USER_LOCAL_REPO;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 public class Utils {
@@ -22,6 +20,80 @@ public class Utils {
         }
         PomParser pomParser = new PomParser(localRepo, remoteRepos);
         return pomParser.readOutLibraries2(pom);
+    }
+
+    public static List<String> findPopularLibFromCsv(String csv) throws IOException {
+        List<String> result = new ArrayList<>();
+        Map<String, Integer> counter = new HashMap<>();
+        Map<String, Integer> groupIDCounter = new HashMap<>();
+        String libName = "" ;
+        String groupID = "" ;
+        String inString = "";
+        Integer tempValue = 0;
+        File inFile  = new File(csv);
+        File popularLib = new File("popularLib.txt");
+        BufferedWriter pw = new BufferedWriter(new FileWriter(popularLib));
+        try{
+            BufferedReader reader = new BufferedReader(new FileReader(inFile));
+            CsvReader csvReader = new CsvReader(reader,'，');
+
+            while(csvReader.readRecord()) {
+                inString = csvReader.getRawRecord();//读取一行数据
+
+                libName =  inString.split(",")[4];
+
+                if(!counter.containsKey(libName)){
+                    counter.put(libName,1);
+                }
+                else {
+                    tempValue = counter.get(libName);
+                    tempValue++;
+                    counter.put(libName,tempValue);
+                }
+
+                groupID = libName.split("\t")[0];
+                if(!groupIDCounter.containsKey(groupID)){
+                    groupIDCounter.put(groupID,1);
+                }
+                else {
+                    tempValue = groupIDCounter.get(groupID);
+                    tempValue++;
+                    groupIDCounter.put(groupID,tempValue);
+                }
+            }
+            counter = sortByValue2(counter);
+            groupIDCounter = sortByValue2(groupIDCounter);
+            System.out.println("GroupID + ArtifactID: "+counter);
+            System.out.println("GroupID: "+groupIDCounter);
+            result.add("GroupID + ArtifactID: "+counter);
+            result.add("GroupID: "+groupIDCounter);
+            pw.write("GroupID + ArtifactID: "+counter+'\n');
+            pw.write("GroupID: "+groupIDCounter+'\n');
+            pw.flush();
+            pw.close();
+        }catch (IOException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+    public static <T> LinkedHashMap<T, Integer> sortByValue2(Map<T, Integer> hm) {
+        // HashMap的entry放到List中
+        List<Map.Entry<T, Integer>> list =
+                new LinkedList<Map.Entry<T, Integer>>(hm.entrySet());
+
+        //  对List按entry的value排序
+        Collections.sort(list, new Comparator<Map.Entry<T, Integer>>() {
+            public int compare(Map.Entry<T, Integer> o1,
+                               Map.Entry<T, Integer> o2) {
+                return -((o1.getValue()).compareTo(o2.getValue()));
+            }
+        });
+
+        LinkedHashMap<T, Integer> res = new LinkedHashMap<>();
+        for (Map.Entry<T, Integer> aa : list) {
+            res.put(aa.getKey(), aa.getValue());
+        }
+        return res;
     }
 
     public static List<DiffCommit> getDiffList(List<Commit> versionMap, String clientName){

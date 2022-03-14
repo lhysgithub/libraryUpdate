@@ -44,6 +44,7 @@ public class DiffCommit {
 
             csvWriter.write(clientName+","+newCommit+","+commit+","+pomName+","+libName+","+isNew.toString()+","+newVersion+","+ oldVersion);
             csvWriter.endRecord();
+            csvWriter.flush();
             csvWriter.close();
         }catch (IOException e) {
             e.printStackTrace();

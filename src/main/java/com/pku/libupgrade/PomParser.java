@@ -1,48 +1,30 @@
 package com.pku.libupgrade;
 
 
-import com.google.common.collect.ImmutableSet;
 import com.pku.libupgrade.internal.ConsoleRepositoryListener;
 import com.pku.libupgrade.internal.ConsoleTransferListener;
 import com.pku.libupgrade.internal.Slf4jLoggerManager;
-import org.apache.maven.artifact.InvalidRepositoryException;
 import org.apache.maven.artifact.repository.ArtifactRepository;
+import org.apache.maven.model.InputLocation;
+import org.apache.maven.model.InputSource;
 import org.apache.maven.project.*;
 import org.apache.maven.repository.internal.MavenRepositorySystemSession;
 import org.apache.maven.repository.internal.MavenServiceLocator;
 import org.codehaus.plexus.*;
 import org.codehaus.plexus.classworlds.ClassWorld;
-import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
 import org.codehaus.plexus.logging.Logger;
-import org.sonatype.aether.RepositorySystem;
-import org.sonatype.aether.artifact.Artifact;
-import org.sonatype.aether.collection.CollectRequest;
 import org.sonatype.aether.connector.async.AsyncRepositoryConnectorFactory;
 import org.sonatype.aether.connector.file.FileRepositoryConnectorFactory;
-import org.sonatype.aether.graph.Dependency;
 import org.sonatype.aether.impl.internal.SimpleLocalRepositoryManager;
 import org.sonatype.aether.repository.LocalRepositoryManager;
-import org.sonatype.aether.repository.RemoteRepository;
-import org.sonatype.aether.resolution.ArtifactResult;
-import org.sonatype.aether.resolution.DependencyRequest;
-import org.sonatype.aether.resolution.DependencyResolutionException;
-import org.sonatype.aether.resolution.DependencyResult;
 import org.sonatype.aether.spi.connector.RepositoryConnectorFactory;
-import org.sonatype.aether.util.artifact.JavaScopes;
-import org.sonatype.aether.util.filter.DependencyFilterUtils;
 
 import java.io.File;
 import java.util.*;
 
 public class PomParser {
     public static final String USER_LOCAL_REPO = System.getProperty("user.home") + "/.m2/repository";
-    public static final String MAVEN_CENTRAL_URI = "https://repo1.maven.org/maven2/,https://repo.maven.apache.org/maven2/";
-    public static final Set<String> DEPRECATED_MAVEN_CENTRAL_URIS = ImmutableSet.<String>builder()
-            .add("https://repo1.maven.org/maven2")
-            .add("https://repo1.maven.org/maven2/")
-            .add("https://repo.maven.apache.org/maven2")
-            .add("https://repo.maven.apache.org/maven2/")
-            .build();
+    public static final String MAVEN_CENTRAL_URI = "https://repo1.maven.org/maven2/";
 
     private final MavenRepositorySystemSession repositorySystemSession;
 
@@ -69,6 +51,10 @@ public class PomParser {
             String groupId = dependency.getGroupId();
             String artifactId = dependency.getArtifactId();
             String version = dependency.getVersion();
+            InputLocation inputLocation = dependency.getLocation("");
+            InputSource inputSource = inputLocation.getSource();
+            String inputSourceLocation = inputSource.getLocation();
+            dependency.getScope();
             returnMap.put(groupId + "\t" + artifactId, version);
         }
         return returnMap;
@@ -125,5 +111,18 @@ public class PomParser {
         Properties properties = new Properties();
         properties.setProperty("java.version", System.getProperty("java.version"));
         return properties;
+    }
+
+    public static void DownloadMavenLib(String groupId,String artifactId,String versionId) throws Exception {
+        String mavenCentral = MAVEN_CENTRAL_URI;
+        String localCentral = USER_LOCAL_REPO;
+        String filePath = "";
+        for(String temp:groupId.split("\\.")){
+            filePath = filePath + temp + "/";
+        }
+        filePath = filePath + artifactId + "/";
+        filePath = filePath + versionId + "/";
+        filePath = filePath + artifactId + "-" + versionId + "-sources.jar";
+        HttpsDownloadUtils.downloadFile(mavenCentral+filePath,localCentral+filePath);
     }
 }

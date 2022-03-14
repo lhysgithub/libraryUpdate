@@ -3,7 +3,6 @@ package com.pku.libupgrade.clientAnalysis;
 
 import com.pku.libupgrade.Commit;
 import com.pku.libupgrade.DiffCommit;
-import com.pku.libupgrade.MongoDBJDBC;
 import com.pku.libupgrade.Utils;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.CleanCommand;
@@ -16,15 +15,12 @@ import org.eclipse.jgit.lib.RepositoryBuilder;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.filter.RevFilter;
-import org.eclipse.osgi.service.security.TrustEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.*;
-
-import static com.pku.libupgrade.GithubConnection.getGitUrl;
 
 public class ClientAnalysis {
     private class RevFilterCommitValid extends RevFilter {
@@ -164,8 +160,6 @@ public class ClientAnalysis {
         List<String> commitIds = clientAnalysis.getAllCommitId(repository, "master"); // todo: if not have master branch
 //        System.out.println("repository.getBranch:"+repository.getBranch());
         System.out.println("projectName: "+ projectName + "commits' size: "+commitIds.size());
-//        System.out.println(commitIds);
-//        int i = 0;
         List<Commit> versionMap = new ArrayList<>();
         // commit pomName libName versionName
         for (String commitId : commitIds) {
@@ -187,18 +181,11 @@ public class ClientAnalysis {
                 }
                 catch (Exception e){
                     ClientAnalysis.logger.error("pom parse error occurred but program continues");
-                    e.printStackTrace();
-                    ; // todo: may has bug in pom parser
+//                    e.printStackTrace();
                 }
                 totPomInfoMap.put(pomPath.replace(projectPath, ""), pomInfoMap);
             }
             System.out.println(totPomInfoMap);
-
-//            i += 1;
-            // debug
-//            if (i > 100) {
-//                break;
-//            }
             versionMap.add(new Commit(commitId,totPomInfoMap));
         }
         List<DiffCommit> diffList = Utils.getDiffList(versionMap, projectName);
@@ -213,19 +200,21 @@ public class ClientAnalysis {
     public static void main(String[] args) throws Exception {
         String projectPath = "../dataset/";
         String projectName = "plantuml";
+        Utils.findPopularLibFromCsv("commitDiff.csv");
         detectVersionChange(projectPath,projectName);
 //        String url = getGitUrl(projectName);
 //        MongoDBJDBC.findPopularLib();
         // 遍历所有repository
-//        File file = new File(projectPath);
-//        File[] fs = file.listFiles();
-//        assert fs != null;
-//        for(File f:fs){					        //遍历File[]数组
-//            if(f.isDirectory())
-//                projectName = f.getName();
-//                System.out.println(f.getName());
-//                detectVersionChange(projectPath,projectName);
-//        }
+        File file = new File(projectPath);
+        File[] fs = file.listFiles();
+        assert fs != null;
+        for(File f:fs){					        //遍历File[]数组
+            if(f.isDirectory())
+                projectName = f.getName();
+                System.out.println(f.getName());
+                detectVersionChange(projectPath,projectName);
+        }
+        Utils.findPopularLibFromCsv("commitDiff.csv");
 //        MongoDBJDBC.findPopularLib();
     }
 
