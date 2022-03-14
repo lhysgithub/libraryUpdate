@@ -3,6 +3,7 @@ package com.pku.libupgrade.clientAnalysis;
 
 import com.pku.libupgrade.Commit;
 import com.pku.libupgrade.DiffCommit;
+import com.pku.libupgrade.PomParser;
 import com.pku.libupgrade.Utils;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.CleanCommand;
@@ -200,6 +201,7 @@ public class ClientAnalysis {
     public static void main(String[] args) throws Exception {
         String projectPath = "../dataset/";
         String projectName = "plantuml";
+        String localSourceDir =  PomParser.DownloadMavenLib("org.apache.maven:maven-core:3.0.4");
         Utils.findPopularLibFromCsv("commitDiff.csv");
         detectVersionChange(projectPath,projectName);
 //        String url = getGitUrl(projectName);

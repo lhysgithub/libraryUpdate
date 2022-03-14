@@ -19,8 +19,10 @@ import org.sonatype.aether.impl.internal.SimpleLocalRepositoryManager;
 import org.sonatype.aether.repository.LocalRepositoryManager;
 import org.sonatype.aether.spi.connector.RepositoryConnectorFactory;
 
+
 import java.io.File;
 import java.util.*;
+import java.util.zip.ZipInputStream;
 
 public class PomParser {
     public static final String USER_LOCAL_REPO = System.getProperty("user.home") + "/.m2/repository";
@@ -113,7 +115,8 @@ public class PomParser {
         return properties;
     }
 
-    public static void DownloadMavenLib(String groupId,String artifactId,String versionId) throws Exception {
+    public static String DownloadMavenLib(String id) throws Exception {
+        String groupId=id.split(":")[0],artifactId=id.split(":")[1],versionId =id.split(":")[2];
         String mavenCentral = MAVEN_CENTRAL_URI;
         String localCentral = USER_LOCAL_REPO;
         String filePath = "";
@@ -123,6 +126,21 @@ public class PomParser {
         filePath = filePath + artifactId + "/";
         filePath = filePath + versionId + "/";
         filePath = filePath + artifactId + "-" + versionId + "-sources.jar";
-        HttpsDownloadUtils.downloadFile(mavenCentral+filePath,localCentral+filePath);
+        File localFile= new File(localCentral+filePath);
+        File localDir = new File(localFile.getPath().split(localFile.getName())[0]);
+        File localSourceDir = new File(localFile.getPath().split(".jar")[0]);
+        if(localSourceDir.exists()){
+            return localSourceDir.getPath();
+        }
+        if (!localFile.exists()){
+            if(!localDir.exists()){
+                localDir.mkdirs();
+            }
+            HttpsDownloadUtils.downloadFile(mavenCentral+filePath,localCentral+filePath);
+        }
+        Utils.unzip(localFile.getPath(),localSourceDir.getPath());
+        return localSourceDir.getPath();
     }
+
+
 }
