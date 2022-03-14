@@ -118,7 +118,7 @@ public class PomParser {
     public static String DownloadMavenLib(String id) throws Exception {
         String groupId=id.split(":")[0],artifactId=id.split(":")[1],versionId =id.split(":")[2];
         String mavenCentral = MAVEN_CENTRAL_URI;
-        String localCentral = USER_LOCAL_REPO;
+        String localCentral = USER_LOCAL_REPO+"/";
         String filePath = "";
         for(String temp:groupId.split("\\.")){
             filePath = filePath + temp + "/";

@@ -201,7 +201,9 @@ public class ClientAnalysis {
     public static void main(String[] args) throws Exception {
         String projectPath = "../dataset/";
         String projectName = "plantuml";
-        String localSourceDir =  PomParser.DownloadMavenLib("org.apache.maven:maven-core:3.0.4");
+//        String localSourceDir =  PomParser.DownloadMavenLib("org.apache.maven:maven-core:3.0.4");
+        String localSourceDir =  PomParser.DownloadMavenLib("org.apache.maven:maven-core:3.1.0");
+        System.out.println(localSourceDir);
         Utils.findPopularLibFromCsv("commitDiff.csv");
         detectVersionChange(projectPath,projectName);
 //        String url = getGitUrl(projectName);

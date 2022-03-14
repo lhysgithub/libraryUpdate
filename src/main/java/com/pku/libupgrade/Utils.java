@@ -168,7 +168,7 @@ public class Utils {
         // 2.2 Go over each entry "file/folder" in zip file
         while ((entry = zip.getNextEntry()) != null) {
             if (!entry.isDirectory()) {
-                System.out.println("-" + entry.getName());
+//                System.out.println("-" + entry.getName());
 
                 // create a new file
                 File file = new File(outputPath + entry.getName());
