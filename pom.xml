@@ -17,6 +17,62 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.github.java-diff-utils</groupId>
+            <artifactId>java-diff-utils</artifactId>
+            <version>4.5</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.aserg-ufmg</groupId>
+            <artifactId>refdiff-core</artifactId>
+            <version>0.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jdt</groupId>
+            <artifactId>org.eclipse.jdt.core</artifactId>
+            <version>3.10.0</version>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.eclipse.jdt</groupId>-->
+<!--            <artifactId>org.eclipse.jdt.core</artifactId>-->
+<!--            <version>3.12.3</version>-->
+<!--        </dependency>-->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.12.0</version>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.eclipse.birt.runtime</groupId>-->
+<!--            <artifactId>org.eclipse.core.jobs</artifactId>-->
+<!--            <version>3.6.1.v20141014-1248</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.eclipse.birt.runtime</groupId>-->
+<!--            <artifactId>org.eclipse.core.resources</artifactId>-->
+<!--            <version>3.9.1.v20140825-1431</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.eclipse.core</groupId>-->
+<!--            <artifactId>runtime</artifactId>-->
+<!--            <version>3.10.0-v20140318-2214</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.eclipse.equinox</groupId>-->
+<!--            <artifactId>common</artifactId>-->
+<!--            <version>3.6.200-v20130402-1505</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.eclipse.equinox</groupId>-->
+<!--            <artifactId>preferences</artifactId>-->
+<!--            <version>3.5.200-v20140224-1527</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.eclipse.birt.runtime</groupId>-->
+<!--            <artifactId>org.eclipse.osgi</artifactId>-->
+<!--            <version>3.10.2.v20150203-1939</version>-->
+<!--        </dependency>-->
+
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>1.7.5</version>

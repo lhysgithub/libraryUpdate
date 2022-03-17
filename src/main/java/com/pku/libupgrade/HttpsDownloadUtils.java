@@ -75,7 +75,7 @@ public class HttpsDownloadUtils {
 
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void test(String[] args) throws Exception {
         downloadFile("https://xxx/xxx.txt", "E:\\test.xls");
     }
 }
