@@ -80,20 +80,24 @@ public class CodeDiff {
     }
 
 
-    public static List<String> getGitCodeDiff(String FilePath, DiffCommit diffCommit, int contextWidth, int sourceCharNumber) throws Exception {
+    public static List<String> getGitCodeDiff(String FilePath, DiffCommit diffCommit, int contextWidth, int sourceCharNumber,String signature) throws Exception {
 //        int sourceLineNumber = 92;
         String oldCommit = diffCommit.commit;
         String newCommit = diffCommit.newCommit;
         String projectPath = "../dataset/"+diffCommit.clientName;
+        Repository r = GitService.openRepository(projectPath);
+        GitService.checkout(r,oldCommit);
         int sourceLineNumber = getLineNumber(FilePath,sourceCharNumber);
         AtomicInteger targetLineNumber = new AtomicInteger();
         targetLineNumber.set(sourceLineNumber);
-        Repository r = GitService.openRepository(projectPath);
-        GitService.checkout(r,oldCommit);
         File src = new File(FilePath);
         List<String> original = IOUtils.readLines(new FileInputStream(src), "UTF-8");
         GitService.checkout(r,newCommit);
         File target = new File(FilePath);
+        if(!target.exists()){
+            System.out.println("not exist this file in new commit");
+            return new LinkedList<>();
+        }
         List<String> revised = IOUtils.readLines(new FileInputStream(target), "UTF-8");
         List<String> codeDiff = new LinkedList<>();
         List<String> diffOriginal = new LinkedList<>();
@@ -146,8 +150,10 @@ public class CodeDiff {
         List<String> resultDiffPatched = getDiffWithContextFromLines(revised,diffPatched, targetLineNumber.get(),contextWidth);
 //        List<String> resultDiffOriginal = getDiffWithContext(FilePath,diffOriginal,sourceLineNumber,contextWidth);
 //        List<String> resultDiffPatched = getDiffWithContext(targetFilePath,diffPatched, targetLineNumber.get(),contextWidth);
-        String affected = "affected/"+ FilePath.replace('/','.');
-        String adaptation = "adaptation/"+ FilePath.replace('/','.');
+        String affected = "affected/"+diffCommit.libName+"-"+diffCommit.oldVersion+"-"+diffCommit.newVersion+"-" + signature + "-" + sourceLineNumber + "-"
+                + FilePath.replace('/','.').split("dataset\\.")[1];
+        String adaptation = "adaptation/"+ diffCommit.libName+"-"+diffCommit.oldVersion+"-"+diffCommit.newVersion+"-" + signature + "-" + sourceLineNumber + "-"
+                + FilePath.replace('/','.').split("dataset\\.")[1];
         writeFile(affected,resultDiffOriginal);
         writeFile(adaptation,resultDiffPatched);
 //        for(String i:resultDiffOriginal){

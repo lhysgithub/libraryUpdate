@@ -174,7 +174,7 @@ public class FindAdaptation {
     public static void getCodePathFromDiffCommit(Map<String,List<AffectedCode>> affected) throws Exception {
         for(String filePath:affected.keySet()){
             for(AffectedCode a:affected.get(filePath)){
-                getGitCodeDiff(filePath,a.diffCommit,5,a.signature.position);
+                getGitCodeDiff(filePath,a.diffCommit,5,a.signature.position,a.signature.signature);
             }
         }
     }

@@ -66,7 +66,7 @@ public class APIDiff implements DiffDetector{
 	}
 
 	public static void apiDiff() throws Exception {
-		Utils.findPopularLibFromCsv("commitDiff1.csv","popularLib.txt");
+		Utils.findPopularLibFromCsv("commitDiff.csv","popularLib.txt");
 		Utils.downloadPopularMavenRepository("popularLib.txt", "../dataset/");
 	}
 

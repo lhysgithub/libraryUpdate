@@ -156,30 +156,4 @@ public class PomParser {
             ClientAnalysis.detectVersionChange(projectPath,projectName);
         }
     }
-
-    public static void main(String[] args) throws Exception {
-        String projectPath = "../dataset/";
-        String projectName = "plantuml";
-//        String localSourceDir =  PomParser.DownloadMavenLib("org.apache.maven:maven-core:3.0.4");
-//        String localSourceDir =  PomParser.DownloadMavenLib("org.apache.maven:maven-core:3.1.0");
-//        System.out.println(localSourceDir);
-//        DiffCommit.cleanCSV("commitDiff.csv","commitDiff1.csv");
-//        detectVersionChange(projectPath,projectName);
-//        String url = getGitUrl(projectName);
-//        MongoDBJDBC.findPopularLib();
-
-        // 遍历所有repository
-        File file = new File(projectPath);
-        File[] fs = file.listFiles();
-        assert fs != null;
-        for(File f:fs){					        //遍历File[]数组
-            if(f.isDirectory())
-                projectName = f.getName();
-            System.out.println(f.getName());
-            ClientAnalysis.detectVersionChange(projectPath,projectName);
-        }
-//        Utils.findPopularLibFromCsv("commitDiff.csv","popularLib.txt");
-//        MongoDBJDBC.findPopularLib();
-    }
-
 }

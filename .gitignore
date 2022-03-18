@@ -11,3 +11,5 @@ affected/
 *.csv
 *.txt
 *.log
+*.jar
+

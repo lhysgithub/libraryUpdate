@@ -28,10 +28,35 @@ import static com.pku.apidiff.FindAdaptation.getAffectedCode;
 import static com.pku.libupgrade.PomParser.pomParse;
 
 public class ClientAnalysis {
+//    public static void main(String[] args) throws Exception {
+//        pomParse();
+//        apiDiff();
+//        getAffectedCode("breakingChanges");
+//    }
+
     public static void main(String[] args) throws Exception {
-        pomParse();
-        apiDiff();
-        getAffectedCode("breakingChanges");
+        String projectPath = "../dataset/";
+        String projectName = "plantuml";
+        //        String localSourceDir =  PomParser.DownloadMavenLib("org.apache.maven:maven-core:3.0.4");
+        //        String localSourceDir =  PomParser.DownloadMavenLib("org.apache.maven:maven-core:3.1.0");
+        //        System.out.println(localSourceDir);
+        //        DiffCommit.cleanCSV("commitDiff.csv","commitDiff1.csv");
+        //        detectVersionChange(projectPath,projectName);
+        //        String url = getGitUrl(projectName);
+        //        MongoDBJDBC.findPopularLib();
+
+        // 遍历所有repository
+        File file = new File(projectPath);
+        File[] fs = file.listFiles();
+        assert fs != null;
+        for(File f:fs){					        //遍历File[]数组
+            if(f.isDirectory())
+                projectName = f.getName();
+            System.out.println(f.getName());
+            detectVersionChange(projectPath,projectName);
+        }
+        //        Utils.findPopularLibFromCsv("commitDiff.csv","popularLib.txt");
+        //        MongoDBJDBC.findPopularLib();
     }
 
     private static class RevFilterCommitValid extends RevFilter {
@@ -192,7 +217,7 @@ public class ClientAnalysis {
                 }
                 catch (Exception e){
                     ClientAnalysis.logger.error("pom parse error occurred but program continues");
-//                    e.printStackTrace();
+                    e.printStackTrace();
                 }
                 totPomInfoMap.put(pomPath.replace(projectPath, ""), pomInfoMap);
             }
