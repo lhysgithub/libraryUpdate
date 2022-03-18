@@ -143,6 +143,7 @@ public class FieldDiff {
 	}
 	
 	private Boolean checkAndProcessRefactoring(final FieldDeclaration field, final TypeDeclaration type){
+		if(this.refactorings==null){return false;}
 		return this.processMoveField(field, type);
 	}
 	

@@ -28,8 +28,11 @@ public class DiffProcessorImpl implements DiffProcessor {
 	public Result detectChange(final APIVersion version1, final APIVersion version2) {
 		Result result = new Result();
 		Map<RefactoringType, List<SDRefactoring>> refactorings = null; // todo waite for repair
+		System.out.println("processing TypeDiff...");
 		result.getChangeType().addAll(new TypeDiff().detectChange(version1, version2, refactorings));
+		System.out.println("processing MethodDiff...");
 		result.getChangeMethod().addAll(new MethodDiff().detectChange(version1, version2, refactorings));
+		System.out.println("processing FieldDiff...");
 		result.getChangeField().addAll(new FieldDiff().detectChange(version1, version2, refactorings));
 		return result;
 	}

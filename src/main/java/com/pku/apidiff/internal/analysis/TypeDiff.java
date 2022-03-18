@@ -79,6 +79,7 @@ public class TypeDiff {
 	}
 	
 	private Boolean processRenameType(final AbstractTypeDeclaration type){
+		if(this.refactorings==null){return false;}
 		List<SDRefactoring> listRenames = this.refactorings.get(RefactoringType.RENAME_CLASS);
 		if(listRenames != null){
 			for(SDRefactoring ref : listRenames){
@@ -94,6 +95,7 @@ public class TypeDiff {
 	}
 	
 	private Boolean processMoveType(final AbstractTypeDeclaration type){
+		if(this.refactorings==null){return false;}
 		List<SDRefactoring> listRenames = this.refactorings.get(RefactoringType.MOVE_CLASS);
 		if(listRenames != null){
 			for(SDRefactoring ref : listRenames){
@@ -109,6 +111,7 @@ public class TypeDiff {
 	}
 	
 	private Boolean processMoveAndRenameType(final AbstractTypeDeclaration type){
+		if(this.refactorings==null){return false;}
 		List<SDRefactoring> listRenames = this.refactorings.get(RefactoringType.MOVE_RENAME_CLASS);
 		if(listRenames != null){
 			for(SDRefactoring ref : listRenames){
@@ -124,6 +127,7 @@ public class TypeDiff {
 	}
 	
 	private Boolean processExtractSuperType(final AbstractTypeDeclaration type){
+		if(this.refactorings==null){return false;}
 		List<SDRefactoring> listRenames = new ArrayList<SDRefactoring>();
 		
 		if(this.refactorings.containsKey(RefactoringType.EXTRACT_SUPERCLASS)){
@@ -151,6 +155,7 @@ public class TypeDiff {
 	}
 	
 	protected Boolean checkAndProcessRefactoring(final AbstractTypeDeclaration type){
+		if(this.refactorings==null){return false;}
 		Boolean rename = this.processRenameType(type);
 		Boolean move = this.processMoveType(type);
 		Boolean moveAndRename = this.processMoveAndRenameType(type);

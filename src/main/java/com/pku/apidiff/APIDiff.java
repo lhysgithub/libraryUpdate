@@ -8,6 +8,7 @@ import com.pku.apidiff.internal.service.git.GitService;
 import com.pku.apidiff.internal.service.git.GitServiceImpl;
 import com.pku.apidiff.internal.util.UtilTools;
 import com.pku.apidiff.internal.visitor.APIVersion;
+import com.pku.libupgrade.Utils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListTagCommand;
 import org.eclipse.jgit.diff.DiffEntry.ChangeType;
@@ -18,7 +19,10 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -34,6 +38,9 @@ public class APIDiff implements DiffDetector{
 	
 	private Logger logger = LoggerFactory.getLogger(APIDiff.class);
 
+	public APIDiff() {
+	}
+
 	public APIDiff(final String nameProject, final String url) {
 		this.url = url;
 		this.nameProject = nameProject;
@@ -43,15 +50,48 @@ public class APIDiff implements DiffDetector{
 
 	public void setPath(String path) {this.path = path;}
 
-	public static void main(String []args) throws Exception {
-		APIDiff diff = new APIDiff("fastjson", "https://github.com/alibaba/fastjson.git");
-		diff.setPath("../dataset/");
-//		Result result = diff.detectChangeAllHistory("master", Classifier.API);
-		Result result = diff.diffLib("/Users/liuhongyi/.m2/repository/org/apache/maven/maven-core/3.0.4/maven-core-3.0.4-sources",
-				"/Users/liuhongyi/.m2/repository/org/apache/maven/maven-core/3.1.0/maven-core-3.1.0-sources",diff.nameProject, Classifier.API);
+//	public static void main(String []args) throws Exception {
+//		APIDiff diff = new APIDiff("fastjson", "https://github.com/alibaba/fastjson.git");
+//		diff.setPath("../dataset/");
+////		Result result = diff.detectChangeAllHistory("master", Classifier.API);
+//		Result result = diff.diffLib("/Users/liuhongyi/.m2/repository/org/apache/maven/maven-core/3.0.4/maven-core-3.0.4-sources",
+//				"/Users/liuhongyi/.m2/repository/org/apache/maven/maven-core/3.1.0/maven-core-3.1.0-sources",diff.nameProject, Classifier.API);
+//		for(Change changeMethod : result.getChangeMethod()){
+//			System.out.println("\n" + changeMethod.getCategory().getDisplayName() + " - " + changeMethod.getDescription());
+//		}
+//	}
+	public static void main(String[] args) throws Exception {
+		Utils.findPopularLibFromCsv("commitDiff.csv","popularLib.txt");
+		Utils.downloadPopularMavenRepository("popularLib.txt", "../dataset/");
+	}
+
+	public static void apiDiff() throws Exception {
+		Utils.findPopularLibFromCsv("commitDiff1.csv","popularLib.txt");
+		Utils.downloadPopularMavenRepository("popularLib.txt", "../dataset/");
+	}
+
+	public static void apiDiff(String oldPath, String newPath, String versionPairPath) throws Exception {
+		APIDiff diff = new APIDiff();
+		Result result = diff.diffLib(oldPath, newPath,diff.nameProject, Classifier.API);
+		if (result.getChangeMethod().size()==0) {return;}
+		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(versionPairPath)));
+//		for(Change changeType : result.getChangeType()){
+//			System.out.println("Type: "+ changeType.getCategory().getDisplayName() + " - " + changeType.getDescription());
+//			bw.write("Type: "+changeType.getCategory().getDisplayName() + " - " + changeType.getDescription() + '\n');
+//			bw.flush();
+//		}
+
 		for(Change changeMethod : result.getChangeMethod()){
-			System.out.println("\n" + changeMethod.getCategory().getDisplayName() + " - " + changeMethod.getDescription());
+			System.out.println("Method: "+ changeMethod.getCategory().getDisplayName() + " - " + changeMethod.getDescription());
+			bw.write("Method: "+changeMethod.getCategory().getDisplayName() + " - " + changeMethod.getDescription() + '\n');
+			bw.flush();
 		}
+//		for(Change changeField : result.getChangeField()){
+//			System.out.println("Field: "+ changeField.getCategory().getDisplayName() + " - " + changeField.getDescription());
+//			bw.write("Field: "+changeField.getCategory().getDisplayName() + " - " + changeField.getDescription() + '\n');
+//			bw.flush();
+//		}
+		bw.close();
 	}
 
 	@Override

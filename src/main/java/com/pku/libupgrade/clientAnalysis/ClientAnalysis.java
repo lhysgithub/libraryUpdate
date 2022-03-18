@@ -23,8 +23,18 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static com.pku.apidiff.APIDiff.apiDiff;
+import static com.pku.apidiff.FindAdaptation.getAffectedCode;
+import static com.pku.libupgrade.PomParser.pomParse;
+
 public class ClientAnalysis {
-    private class RevFilterCommitValid extends RevFilter {
+    public static void main(String[] args) throws Exception {
+        pomParse();
+        apiDiff();
+        getAffectedCode("breakingChanges");
+    }
+
+    private static class RevFilterCommitValid extends RevFilter {
 
         @Override
         public final boolean include(final RevWalk walker, final RevCommit c) {
@@ -193,33 +203,11 @@ public class ClientAnalysis {
         System.out.println("diffList size: "+diffList.size());
         for (DiffCommit it : diffList){
             it.print();
-            it.saveCSV();
+            it.saveCSV("commitDiff.csv");
 //            MongoDBJDBC.insertCommitDiff(it);
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        String projectPath = "../dataset/";
-        String projectName = "plantuml";
-//        String localSourceDir =  PomParser.DownloadMavenLib("org.apache.maven:maven-core:3.0.4");
-        String localSourceDir =  PomParser.DownloadMavenLib("org.apache.maven:maven-core:3.1.0");
-        System.out.println(localSourceDir);
-        Utils.findPopularLibFromCsv("commitDiff.csv");
-        detectVersionChange(projectPath,projectName);
-//        String url = getGitUrl(projectName);
-//        MongoDBJDBC.findPopularLib();
-        // 遍历所有repository
-        File file = new File(projectPath);
-        File[] fs = file.listFiles();
-        assert fs != null;
-        for(File f:fs){					        //遍历File[]数组
-            if(f.isDirectory())
-                projectName = f.getName();
-                System.out.println(f.getName());
-                detectVersionChange(projectPath,projectName);
-        }
-        Utils.findPopularLibFromCsv("commitDiff.csv");
-//        MongoDBJDBC.findPopularLib();
-    }
+
 
 }

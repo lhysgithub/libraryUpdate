@@ -1,6 +1,7 @@
 package com.pku.libupgrade;
 
 import com.csvreader.CsvReader;
+import com.pku.apidiff.APIDiff;
 
 import static com.pku.libupgrade.PomParser.MAVEN_CENTRAL_URI;
 import static com.pku.libupgrade.PomParser.USER_LOCAL_REPO;
@@ -24,16 +25,21 @@ public class Utils {
         return pomParser.readOutLibraries2(pom);
     }
 
-    public static List<String> findPopularLibFromCsv(String csv) throws IOException {
+    public static List<String> findPopularLibFromCsv(String csv,String outputPath) throws IOException {
         List<String> result = new ArrayList<>();
         Map<String, Integer> counter = new HashMap<>();
         Map<String, Integer> groupIDCounter = new HashMap<>();
+        Map<String, Integer> versionPairCounter = new HashMap<>();
         String libName = "" ;
         String groupID = "" ;
         String inString = "";
+        String artifactID = "";
+        String libNewVersion = "";
+        String libOldVersion = "";
+        String temp = "";
         Integer tempValue = 0;
         File inFile  = new File(csv);
-        File popularLib = new File("popularLib.txt");
+        File popularLib = new File(outputPath);
         BufferedWriter pw = new BufferedWriter(new FileWriter(popularLib));
         try{
             BufferedReader reader = new BufferedReader(new FileReader(inFile));
@@ -41,36 +47,61 @@ public class Utils {
 
             while(csvReader.readRecord()) {
                 inString = csvReader.getRawRecord();//读取一行数据
-
                 libName =  inString.split(",")[4];
-
-                if(!counter.containsKey(libName)){
-                    counter.put(libName,1);
-                }
-                else {
-                    tempValue = counter.get(libName);
-                    tempValue++;
-                    counter.put(libName,tempValue);
-                }
-
                 groupID = libName.split("\t")[0];
-                if(!groupIDCounter.containsKey(groupID)){
-                    groupIDCounter.put(groupID,1);
+                artifactID = libName.split("\t")[1];
+                libNewVersion = inString.split(",")[6];
+                libOldVersion = inString.split(",")[7];
+                if(libOldVersion.equals("\"")){ libOldVersion="null"; }
+                else{ libOldVersion = libOldVersion.split("\"")[0];}
+                temp=groupID+":"+artifactID+":"+libNewVersion;
+                if(!counter.containsKey(temp)){
+                    counter.put(temp,1);
                 }
                 else {
-                    tempValue = groupIDCounter.get(groupID);
+                    tempValue = counter.get(temp);
                     tempValue++;
-                    groupIDCounter.put(groupID,tempValue);
+                    counter.put(temp,tempValue);
                 }
+                temp=groupID+":"+artifactID+":"+libOldVersion;
+                if(!counter.containsKey(temp)){
+                    counter.put(temp,1);
+                }
+                else {
+                    tempValue = counter.get(temp);
+                    tempValue++;
+                    counter.put(temp,tempValue);
+                }
+                temp=groupID+":"+artifactID+":"+libNewVersion+":"+libOldVersion;
+                if(!versionPairCounter.containsKey(temp)){
+                    versionPairCounter.put(temp,1);
+                }
+                else {
+                    tempValue = versionPairCounter.get(temp);
+                    tempValue++;
+                    versionPairCounter.put(temp,tempValue);
+                }
+//                if(!groupIDCounter.containsKey(groupID)){
+//                    groupIDCounter.put(groupID,1);
+//                }
+//                else {
+//                    tempValue = groupIDCounter.get(groupID);
+//                    tempValue++;
+//                    groupIDCounter.put(groupID,tempValue);
+//                }
             }
             counter = sortByValue2(counter);
-            groupIDCounter = sortByValue2(groupIDCounter);
-            System.out.println("GroupID + ArtifactID: "+counter);
-            System.out.println("GroupID: "+groupIDCounter);
+            versionPairCounter = sortByValue2(versionPairCounter);
+//            groupIDCounter = sortByValue2(groupIDCounter);
+//            System.out.println("GroupID + ArtifactID: "+counter);
+//            System.out.println("versionPairCounter: "+versionPairCounter);
+//            System.out.println("GroupID: "+groupIDCounter);
             result.add("GroupID + ArtifactID: "+counter);
-            result.add("GroupID: "+groupIDCounter);
-            pw.write("GroupID + ArtifactID: "+counter+'\n');
-            pw.write("GroupID: "+groupIDCounter+'\n');
+            result.add("versionPairCounter: "+versionPairCounter);
+//            result.add("GroupID: "+groupIDCounter);
+//            pw.write("GroupID + ArtifactID: "+counter+'\n');
+            pw.write("versionPairCounter: "+versionPairCounter+'\n');
+//            pw.write("GroupID: "+groupIDCounter+'\n');
             pw.flush();
             pw.close();
         }catch (IOException e) {
@@ -96,6 +127,45 @@ public class Utils {
             res.put(aa.getKey(), aa.getValue());
         }
         return res;
+    }
+
+    public static void downloadPopularMavenRepository(String popularLibListPath, String LibRootPath) throws Exception {
+        BufferedReader popularLibs = new BufferedReader(new FileReader(new File(popularLibListPath))); // todo fix
+        String line = popularLibs.readLine();
+        List<String> popularLibList = new LinkedList<>();
+        if(line!=null){
+            String[] split = line.split("\\{")[1].split("}")[0].split(",");
+            int i=0;
+            for(String str:split){
+                if(i>=50){
+                    break;
+                }
+                i++;
+                String[] temp = str.split("=")[0].split(":");
+                String groupId = temp[0];
+                if(groupId.toCharArray()[0] == ' '){ groupId = groupId.split(" ")[1];}
+                String artifactId = temp[1];
+                String newVersion = temp[2];
+                String oldVersion = temp[3];
+                String newId = groupId+":"+artifactId+":"+newVersion;
+                String oldId = groupId+":"+artifactId+":"+oldVersion;
+                String versionPair = newId+"_"+oldId+".txt";
+                if(oldVersion.equals("null")){continue;}
+                if(oldVersion.contains("SNAPSHOT")){continue;}
+                if(newVersion.contains("SNAPSHOT")){continue;}
+                System.out.println("Downloading "+newId+" ...");
+                String newVersionDir = PomParser.DownloadMavenLib(newId);
+                System.out.println("Downloading "+oldId+" ...");
+                String oldVersionDir = PomParser.DownloadMavenLib(oldId);
+                System.out.println("ApiDiffing "+newId +" and "+oldId+" ...");
+                if(versionPair.equals("com.taobao.arthas:arthas-common:3.5.2_com.taobao.arthas:arthas-common:3.5.1.txt")){
+                    System.out.println("target");
+                }
+                APIDiff.apiDiff(oldVersionDir,newVersionDir,"breakingChanges/"+versionPair);
+
+            }
+        }
+
     }
 
     public static List<DiffCommit> getDiffList(List<Commit> versionMap, String clientName){

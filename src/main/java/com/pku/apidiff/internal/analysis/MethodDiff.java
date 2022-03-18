@@ -184,6 +184,7 @@ public class MethodDiff {
 	}
 
 	private Boolean checkAndProcessRefactoring(final MethodDeclaration method, final TypeDeclaration type){
+		if(this.refactorings==null){return false;}
 		Boolean moveAndRename = this.processRefactorMethod(method, type);
 		Boolean listParameters = this.processChangeListParametersMethod(method, type);
 		return moveAndRename || listParameters;
