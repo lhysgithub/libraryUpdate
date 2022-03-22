@@ -259,15 +259,17 @@ public class FindAdaptation {
                         logger.error("This DiffCommit has checked...");
                         continue;
                     }
-                    try{
-                        affectedCode = getAffectedDiffCommit(s,d); // 筛选客户端diffCommit: oldCommit 调用了 第三方库 breaking change 之前的 API
-                        checkedCommit.add(d.commit);
-                    }
-                    catch (Exception e){
-                        affectedCode = new HashMap<>();
-                        logger.error(e.toString());
-                    }
+//                    try{
+//                        affectedCode = getAffectedDiffCommit(s,d); // 筛选客户端diffCommit: oldCommit 调用了 第三方库 breaking change 之前的 API
+//                        checkedCommit.add(d.commit);
+//                    }
+//                    catch (Exception e){
+//                        affectedCode = new HashMap<>();
+//                        logger.error(e.toString());
+//                    }
+                    affectedCode = retryGetAffectedDiffCommit(s,d,0);
                     if (affectedCode.size()!=0){
+                        checkedCommit.add(d.commit);
                         logger.error("affectedCode.size: "+affectedCode.size());
                         logger.error("getCodePathFromDiffCommit...");
                         getCodePathFromDiffCommit(affectedCode);
