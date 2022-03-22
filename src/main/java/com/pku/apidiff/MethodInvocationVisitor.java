@@ -43,6 +43,18 @@ public class MethodInvocationVisitor extends ASTVisitor{
     public boolean visit(MethodInvocation node) {
         List<String> signature = new LinkedList<>();
 
+//        // if iMethodBinding is not null, it could be easy to get Signature
+////        IMethodBinding iMethodBinding = node.resolveMethodBinding();
+////        iMethodBinding.getReturnType().getQualifiedName();
+////        iMethodBinding.getName();
+////        iMethodBinding.getTypeParameters();
+
+//        List argumentsType = node.typeArguments();
+//        for (Integer i=0 ; i<argumentsType.size() ; i++) {
+//            Object test = argumentsType.get(i);
+//            test.toString();
+//        }
+
         // return type
         ITypeBinding returnType = node.resolveTypeBinding();
         if (returnType!=null){signature.add(returnType.getName());}
@@ -62,8 +74,24 @@ public class MethodInvocationVisitor extends ASTVisitor{
                 else{signature.add("null");}
             }
         }
-        // add caller
 
+        // objectType
+        Expression tempExp = node.getExpression();
+        if(tempExp!=null){
+            ITypeBinding tempTypeBingding = tempExp.resolveTypeBinding();
+            if (tempTypeBingding!=null){
+                signature.add(tempTypeBingding.getName());
+            }
+            else{
+                signature.add("null");
+            }
+        }
+        else{
+            signature.add("null");
+        }
+
+
+        // add caller
         StringBuilder str = new StringBuilder();
         int j =0;
         for (String i:signature) {

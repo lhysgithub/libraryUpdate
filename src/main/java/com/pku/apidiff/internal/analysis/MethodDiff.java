@@ -367,6 +367,10 @@ public class MethodDiff {
 							Boolean refactoring = this.checkAndProcessRefactoring(methodInVersion1, typeInVersion1);
 							if(!refactoring){
 								this.processRemoveMethod(methodInVersion1, typeInVersion1);
+								System.out.println("typeInVersion1.QualifiedName: "+typeInVersion1.getName().getFullyQualifiedName());
+								System.out.println("methodInVersion1: "+methodInVersion1.getName());
+//								System.out.println("methodInVersion2: "+methodInVersion2.getName());
+								System.out.println("");
 							}
 						}
 					}

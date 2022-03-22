@@ -131,7 +131,8 @@ public class APIVersion {
 //		parser.setEnvironment(classpath, sources, new String[] { "UTF-8" },	true);
 //		CompilationUnit compilationUnit = null;
 		try {
-			parser.setEnvironment(null, null, null,	true);
+			parser.setEnvironment(classpath, sources, new String[] { "UTF-8" },	true);
+//			parser.setEnvironment(null, null, null,	true);
 			CompilationUnit compilationUnit = (CompilationUnit) parser.createAST(null);
 			TypeDeclarationVisitor visitorType = new TypeDeclarationVisitor();
 			EnumDeclarationVisitor visitorEnum = new EnumDeclarationVisitor();
@@ -323,6 +324,7 @@ public class APIVersion {
 				for(MethodDeclaration versionMethod : versionType.getMethods()){
 					if(!ComparatorMethod.isDiffMethodByNameAndParameters(versionMethod, method)){
 						methodVersionOld =  versionMethod;
+//						System.out.println("version1");// todo fix breaking change bugs
 					}
 				}
 			}

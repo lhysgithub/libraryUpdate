@@ -4,6 +4,8 @@ import com.csvreader.CsvReader;
 import com.csvreader.CsvWriter;
 
 import java.io.*;
+import java.util.Arrays;
+import java.util.List;
 
 public class DiffCommit {
     public String commit;
@@ -81,7 +83,26 @@ public class DiffCommit {
         CsvReader csvReader = new CsvReader(reader,'，');
         while(csvReader.readRecord()) {
             inString = csvReader.getRawRecord();//读取一行数据
+            inString = inString.split("\"")[1];
             if(inString.equals(insertContent)){
+                isExist = true;
+                break;
+            }
+        }
+        csvReader.close();
+        return isExist;
+    }
+
+    public static boolean isExistOldCommit(String oldCommit,String filePath) throws IOException {
+        String inString;
+        Boolean isExist = false;
+        File inFile  = new File(filePath);
+        BufferedReader reader = new BufferedReader(new FileReader(inFile));
+        CsvReader csvReader = new CsvReader(reader,'，');
+        while(csvReader.readRecord()) {
+            inString = csvReader.getRawRecord();//读取一行数据
+            inString = inString.split("\"")[1];
+            if(inString.split(",")[2].equals(oldCommit)){
                 isExist = true;
                 break;
             }
@@ -96,20 +117,32 @@ public class DiffCommit {
         File outFile  = new File(outputFilePath);
         BufferedReader reader = new BufferedReader(new FileReader(inFile));
         CsvReader csvReader = new CsvReader(reader,'，');
-        BufferedWriter writer = new BufferedWriter(new FileWriter(outFile,true));
+        BufferedWriter writer = new BufferedWriter(new FileWriter(outFile,false));
         CsvWriter csvWriter = new CsvWriter(writer,',');
         while(csvReader.readRecord()) {
             inString = csvReader.getRawRecord();//读取一行数据
 //            Object test = inString.split("\"");
             inString = inString.split("\"")[1];
+            String version1 = inString.split(",")[6];
+            List<String> tempString = Arrays.asList(inString.split(","));
+            String version2;
+            if (tempString.size()==7){
+                version2 = "";
+                continue;
+            }
+            else{
+                version2 = inString.split(",")[7];
+            }
+            if(version2.contains("SNAPSHOT") || version1.contains("SNAPSHOT")){ continue; }
+            if(isExistOldCommit(inString.split(",")[2],outputFilePath)){ continue; }
             if(!isExist(inString,outputFilePath)){
                 csvWriter.write(inString);
                 csvWriter.endRecord();
+                csvWriter.flush();
 
             }
         }
         csvReader.close();
-        csvWriter.flush();
         csvWriter.close();
     }
 }

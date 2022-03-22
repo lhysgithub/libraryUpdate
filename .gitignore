@@ -12,4 +12,5 @@ affected/
 *.txt
 *.log
 *.jar
+.DS_Store
 

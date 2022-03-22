@@ -25,6 +25,24 @@ public class Utils {
         return pomParser.readOutLibraries2(pom);
     }
 
+    public static boolean isProjectExist(String projectName, String commitDiffPath) throws IOException {
+        String inString;
+        Boolean isExist = false;
+        File inFile  = new File(commitDiffPath);
+        BufferedReader reader = new BufferedReader(new FileReader(inFile));
+        CsvReader csvReader = new CsvReader(reader,'，');
+        while(csvReader.readRecord()) {
+            inString = csvReader.getRawRecord();//读取一行数据
+            inString = inString.split("\"")[1];
+            if(inString.split(",")[0].equals(projectName)){
+                isExist = true;
+                break;
+            }
+        }
+        csvReader.close();
+        return isExist;
+    }
+
     public static List<String> findPopularLibFromCsv(String csv,String outputPath) throws IOException {
         List<String> result = new ArrayList<>();
         Map<String, Integer> counter = new HashMap<>();
@@ -137,10 +155,9 @@ public class Utils {
             String[] split = line.split("\\{")[1].split("}")[0].split(",");
             int i=0;
             for(String str:split){
-                if(i>=50){
+                if(i>=5){
                     break;
                 }
-                i++;
                 String[] temp = str.split("=")[0].split(":");
                 String groupId = temp[0];
                 if(groupId.toCharArray()[0] == ' '){ groupId = groupId.split(" ")[1];}
@@ -153,16 +170,22 @@ public class Utils {
                 if(oldVersion.equals("null")){continue;}
                 if(oldVersion.contains("SNAPSHOT")){continue;}
                 if(newVersion.contains("SNAPSHOT")){continue;}
-                System.out.println("Downloading "+newId+" ...");
-                String newVersionDir = PomParser.DownloadMavenLib(newId);
-                System.out.println("Downloading "+oldId+" ...");
-                String oldVersionDir = PomParser.DownloadMavenLib(oldId);
-                System.out.println("ApiDiffing "+newId +" and "+oldId+" ...");
-                if(versionPair.equals("com.taobao.arthas:arthas-common:3.5.2_com.taobao.arthas:arthas-common:3.5.1.txt")){
-                    System.out.println("target");
+                try {
+                    System.out.println("Downloading "+newId+" ...");
+                    String newVersionDir = PomParser.DownloadMavenLib(newId);
+                    System.out.println("Downloading "+oldId+" ...");
+                    String oldVersionDir = PomParser.DownloadMavenLib(oldId);
+                    System.out.println("ApiDiffing "+newId +" and "+oldId+" ...");
+                    if(versionPair.equals("com.taobao.arthas:arthas-common:3.5.2_com.taobao.arthas:arthas-common:3.5.1.txt")){
+                        System.out.println("target");
+                    }
+                    APIDiff.apiDiff(oldVersionDir,newVersionDir,"breakingChanges/"+versionPair);
                 }
-                APIDiff.apiDiff(oldVersionDir,newVersionDir,"breakingChanges/"+versionPair);
-
+                catch (Exception e){
+                    e.printStackTrace();
+                    continue;
+                }
+                i++;
             }
         }
 

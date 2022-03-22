@@ -3,11 +3,14 @@ package com.pku.apidiff;
 //import apidiff.internal.util.UtilTools;
 import com.pku.libupgrade.DiffCommit;
 import com.pku.libupgrade.GitService;
+import com.pku.libupgrade.clientAnalysis.ClientAnalysis;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jgit.lib.Repository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.*;
@@ -18,6 +21,7 @@ import static com.pku.apidiff.CodeDiff.getGitCodeDiff;
 // 输入 breakingChanges, commitDiffs
 // 输出 affectedCodes, adaptationCodes
 public class FindAdaptation {
+    private static Logger logger = LoggerFactory.getLogger(FindAdaptation.class);
     public static CompilationUnit getCompilationUnit(String javaFilePath) {
         byte[] input = null;
         try {
@@ -65,7 +69,7 @@ public class FindAdaptation {
             }
         }
         else {
-            System.out.println("Error");
+            logger.error("Error for getAllSignatureProjectLeve");
         }
     }
 
@@ -105,7 +109,7 @@ public class FindAdaptation {
         while ( (line=br.readLine())!=null ){
             if (line.split(":")[0].equals("Method")){
                 if (line.split(" ")[1].equals("Remove")){
-                    signatures.add(line.split("<code>")[1].split("</code>")[0]);
+                    signatures.add(line.split("<code>")[1].split("</code>")[0] + "-"+ line.split("<code>")[2].split("</code>")[0]);
                 }
             }
         }
@@ -113,21 +117,48 @@ public class FindAdaptation {
         return signatures;
     }
 
+//    public static List<String> getSignatureFromStringOld(String s) {
+//        List<String> signature = new LinkedList<>();
+//
+//        // return type
+//        signature.add(s.split(" ")[0]);
+//
+//        // method name
+//        signature.add(s.split("\\(")[0].split(" ")[1]);
+//
+//        // parameter list
+//        if(s.split("\\(")[1].equals(")")) return signature;
+//        String list = s.split("\\(")[1].split("\\)")[0];
+//        for (String para : list.split(",")) {
+//            Integer size = para.split(" ").length;
+//            signature.add(para.split(" ")[size - 2]);
+//        }
+//        return signature;
+//    }
+
     public static List<String> getSignatureFromString(String s) {
         List<String> signature = new LinkedList<>();
+        // targetSignature
+        String targetSignature = s.split("-")[0];
+        String targetObjectType = s.split("-")[1];
+        String[] targetObjectTypeStack = targetObjectType.split("\\.");
+
         // return type
-        signature.add(s.split(" ")[0]);
+        signature.add(targetSignature.split(" ")[0]);
 
         // method name
-        signature.add(s.split("\\(")[0].split(" ")[1]);
+        signature.add(targetSignature.split("\\(")[0].split(" ")[1]);
 
         // parameter list
-        if(s.split("\\(")[1].equals(")")) return signature;
-        String list = s.split("\\(")[1].split("\\)")[0];
+        if(targetSignature.split("\\(")[1].equals(")")) return signature;
+        String list = targetSignature.split("\\(")[1].split("\\)")[0];
         for (String para : list.split(",")) {
             Integer size = para.split(" ").length;
             signature.add(para.split(" ")[size - 2]);
         }
+
+        // target object
+        signature.add(targetObjectTypeStack[targetObjectTypeStack.length-1]);
         return signature;
     }
 
@@ -135,7 +166,7 @@ public class FindAdaptation {
         String clientPath =  "../dataset/"+diffCommit.clientName;
         Repository r = GitService.openRepository(clientPath);
         GitService.checkout(r,diffCommit.commit);
-        System.out.println("getAllSignatureProjectLeve..." + clientPath);
+        logger.error("getAllSignatureProjectLeve..." + clientPath);
         File client = new File(clientPath);
         Map<String,List<Signature>> allCallerSignaturesOfProject = new HashMap<>();
         getAllSignatureProjectLeve(clientPath,client,allCallerSignaturesOfProject);
@@ -155,7 +186,7 @@ public class FindAdaptation {
                     if(nowSignature.get(i).equals("null") || targetSignature.get(i).equals("null")){
                         continue;
                     }
-                    if(!nowSignature.get(i).equals(targetSignature.get(i))){
+                    if(!nowSignature.get(i).equals(targetSignature.get(i))){ // todo fix type analysis
                         isEqual = false;
                         break;
                     }
@@ -191,29 +222,30 @@ public class FindAdaptation {
 //                continue;
 //            }
 //            k++;
-            System.out.println("fetchBreakingChangeLibAndVersions...");
+            if(f.getName().equals(".DS_Store")){continue;}
+            logger.error("fetchBreakingChangeLibAndVersions...");
             String newVersion = f.getName().split("_")[0];
             String oldVersion = f.getName().split("_")[1].split("\\.txt")[0];
-            System.out.println("getBreakingChangeSignatures...");
+            logger.error("getBreakingChangeSignatures...");
             List<String> breakingChangeSignatures = getBreakingChangeSignatures(f.getAbsolutePath());
             List<String> checkedSignature = new LinkedList<>();
             targetSignatures.addAll(breakingChangeSignatures);
-            System.out.println("findAffectedClientDiffCommit...");
-            List<DiffCommit> possibleAffectedDiffCommit = findAffectedClientDiffCommit("commitDiff.csv",newVersion,oldVersion);
+            logger.error("findAffectedClientDiffCommit...");
+            List<DiffCommit> possibleAffectedDiffCommit = findAffectedClientDiffCommit("commitDiff1.csv",newVersion,oldVersion);
             targetDiffCommits.addAll(possibleAffectedDiffCommit);  // 筛选客户端diffCommit: 客户端存在将第三方库从A版本升级到B版本的行为
-            System.out.println("breakingChangeSignatures.size: "+ breakingChangeSignatures.size());
-            System.out.println("possibleAffectedDiffCommit.size: "+ possibleAffectedDiffCommit.size());
-            System.out.println("getAffectedDiffCommit...");
+            logger.error("breakingChangeSignatures.size: "+ breakingChangeSignatures.size());
+            logger.error("possibleAffectedDiffCommit.size: "+ possibleAffectedDiffCommit.size());
+            logger.error("getAffectedDiffCommit...");
             int i =0;
             for(String s: breakingChangeSignatures){ // 对于所有的破坏性变更Signature
-                if(i<48) {
-                    i++;
-                    continue;
-                }
-                i++;
+//                if(i<48) {
+//                    i++;
+//                    continue;
+//                }
+//                i++;
                 if (checkedSignature.contains(s)) {continue;}
                 checkedSignature.add(s);
-                System.out.println("for breakingChangeSignatures..."+s+ " "+ newVersion + " "+ oldVersion);
+                logger.error("for breakingChangeSignatures..."+s+ " "+ newVersion + " "+ oldVersion);
                 Set<String> checkedCommit = new HashSet<>();
                 int j=0;
                 for(DiffCommit d:possibleAffectedDiffCommit){
@@ -222,9 +254,9 @@ public class FindAdaptation {
 //                        continue;
 //                    }
 //                    j++;
-                    System.out.println("for DiffCommit..."+d);
+                    logger.error("for DiffCommit..."+d);
                     if(checkedCommit.contains(d.commit)){
-                        System.out.println("This DiffCommit has checked...");
+                        logger.error("This DiffCommit has checked...");
                         continue;
                     }
                     try{
@@ -233,21 +265,37 @@ public class FindAdaptation {
                     }
                     catch (Exception e){
                         affectedCode = new HashMap<>();
-                        e.printStackTrace();
+                        logger.error(e.toString());
                     }
                     if (affectedCode.size()!=0){
-                        System.out.println("affectedCode.size: "+affectedCode.size());
-                        System.out.println("getCodePathFromDiffCommit...");
+                        logger.error("affectedCode.size: "+affectedCode.size());
+                        logger.error("getCodePathFromDiffCommit...");
                         getCodePathFromDiffCommit(affectedCode);
                     }
                     else {
-                        System.out.println("noAffectedCode...");
+                        logger.error("noAffectedCode...");
                     }
                 }
             }
         }
 
 //        getBreakingChangeSignatures()
+    }
+
+    public static Map<String,List<AffectedCode>> retryGetAffectedDiffCommit(String s, DiffCommit d ,int retryTimes){
+        if (retryTimes>=3){
+            return new HashMap<>();
+        }
+        Map<String,List<AffectedCode>> affectedCode;
+        try{
+            affectedCode = getAffectedDiffCommit(s,d); // 筛选客户端diffCommit: oldCommit 调用了 第三方库 breaking change 之前的 API
+            return affectedCode;
+
+        }
+        catch (Exception e){
+            logger.error(e.toString());
+            return retryGetAffectedDiffCommit(s,d,retryTimes+1);
+        }
     }
 
     public static void main(String[] args) throws Exception {

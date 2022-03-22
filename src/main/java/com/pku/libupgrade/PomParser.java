@@ -129,7 +129,7 @@ public class PomParser {
         filePath = filePath + artifactId + "-" + versionId + "-sources.jar";
         File localFile= new File(localCentral+filePath);
         File localDir = new File(localFile.getPath().split(localFile.getName())[0]);
-        File localSourceDir = new File(localFile.getPath().split(".jar")[0]);
+        File localSourceDir = new File(localFile.getPath().split("\\.jar")[0]);
         if(localSourceDir.exists()){
             return localSourceDir.getPath();
         }

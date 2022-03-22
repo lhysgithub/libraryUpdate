@@ -9,6 +9,7 @@ import com.pku.apidiff.internal.service.git.GitServiceImpl;
 import com.pku.apidiff.internal.util.UtilTools;
 import com.pku.apidiff.internal.visitor.APIVersion;
 import com.pku.libupgrade.Utils;
+import com.pku.libupgrade.clientAnalysis.ClientAnalysis;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListTagCommand;
 import org.eclipse.jgit.diff.DiffEntry.ChangeType;
@@ -35,8 +36,8 @@ public class APIDiff implements DiffDetector{
 	private String path;
 	
 	private String url;
-	
-	private Logger logger = LoggerFactory.getLogger(APIDiff.class);
+
+	private static Logger logger = LoggerFactory.getLogger(ClientAnalysis.class);
 
 	public APIDiff() {
 	}
@@ -61,12 +62,12 @@ public class APIDiff implements DiffDetector{
 //		}
 //	}
 	public static void main(String[] args) throws Exception {
-		Utils.findPopularLibFromCsv("commitDiff.csv","popularLib.txt");
+		Utils.findPopularLibFromCsv("commitDiff1.csv","popularLib.txt");
 		Utils.downloadPopularMavenRepository("popularLib.txt", "../dataset/");
 	}
 
 	public static void apiDiff() throws Exception {
-		Utils.findPopularLibFromCsv("commitDiff.csv","popularLib.txt");
+		Utils.findPopularLibFromCsv("commitDiff1.csv","popularLib.txt");
 		Utils.downloadPopularMavenRepository("popularLib.txt", "../dataset/");
 	}
 
