@@ -39,8 +39,7 @@ public class MethodInvocationVisitor extends ASTVisitor{
         }
     }
 
-    @Override
-    public boolean visit(MethodInvocation node) {
+    public List<String> getCallerSignatureFromMethodInvocation(MethodInvocation node){
         List<String> signature = new LinkedList<>();
 
 //        // if iMethodBinding is not null, it could be easy to get Signature
@@ -90,18 +89,25 @@ public class MethodInvocationVisitor extends ASTVisitor{
             signature.add("null");
         }
 
+        return signature;
+    }
 
-        // add caller
-        StringBuilder str = new StringBuilder();
-        int j =0;
-        for (String i:signature) {
-            if (j==0) str.append(i);
-            else str.append(" ").append(i);
-            j++;
-        }
+    @Override
+    public boolean visit(MethodInvocation node) {
+        List<String> signature = getCallerSignatureFromMethodInvocation(node);
+
+
+//        // add caller
+//        StringBuilder str = new StringBuilder();
+//        int j =0;
+//        for (String i:signature) {
+//            if (j==0) str.append(i);
+//            else str.append(" ").append(i);
+//            j++;
+//        }
 
         callers.add(node);
-        callerSignatures.add(new Signature(str.toString(),node.getStartPosition()));
+        callerSignatures.add(Signature.getSignatureFromStringList(signature,node.getStartPosition()));
 
         return super.visit(node);
     }

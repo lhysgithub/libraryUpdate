@@ -155,9 +155,10 @@ public class Utils {
             String[] split = line.split("\\{")[1].split("}")[0].split(",");
             int i=0;
             for(String str:split){
-                if(i>=5){
+                if(i>=100){
                     break;
                 }
+                String popularTimes = str.split("=")[1];
                 String[] temp = str.split("=")[0].split(":");
                 String groupId = temp[0];
                 if(groupId.toCharArray()[0] == ' '){ groupId = groupId.split(" ")[1];}
@@ -166,7 +167,7 @@ public class Utils {
                 String oldVersion = temp[3];
                 String newId = groupId+":"+artifactId+":"+newVersion;
                 String oldId = groupId+":"+artifactId+":"+oldVersion;
-                String versionPair = newId+"_"+oldId+".txt";
+                String versionPair = popularTimes+"_"+newId+"_"+oldId+".txt";
                 if(oldVersion.equals("null")){continue;}
                 if(oldVersion.contains("SNAPSHOT")){continue;}
                 if(newVersion.contains("SNAPSHOT")){continue;}
@@ -179,7 +180,7 @@ public class Utils {
                     if(versionPair.equals("com.taobao.arthas:arthas-common:3.5.2_com.taobao.arthas:arthas-common:3.5.1.txt")){
                         System.out.println("target");
                     }
-                    APIDiff.apiDiff(oldVersionDir,newVersionDir,"breakingChanges/"+versionPair);
+                    APIDiff.apiDiff(oldVersionDir,newVersionDir,oldId,newId,"breakingChanges/"+versionPair);
                 }
                 catch (Exception e){
                     e.printStackTrace();

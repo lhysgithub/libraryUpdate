@@ -1,5 +1,8 @@
 package com.pku.apidiff.internal.visitor;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pku.apidiff.Signature;
 import com.pku.apidiff.enums.Classifier;
 import com.pku.apidiff.internal.analysis.comparator.ComparatorMethod;
 import com.pku.apidiff.internal.service.git.GitFile;
@@ -10,8 +13,7 @@ import org.eclipse.jgit.diff.DiffEntry.ChangeType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 public class APIVersion {
@@ -21,6 +23,7 @@ public class APIVersion {
 	private ArrayList<EnumDeclaration> apiAccessibleEnums = new ArrayList<EnumDeclaration>();
 	private ArrayList<EnumDeclaration> apiNonAccessibleEnums = new ArrayList<EnumDeclaration>();
 	private Map<ChangeType, List<GitFile>> mapModifications = new HashMap<ChangeType, List<GitFile>>();
+	public Map<String, List<Signature>>  apiCallersMap = new HashMap<>();
 	private List<String> listFilesMofify = new ArrayList<String>();
 	private Classifier classifierAPI;
 	private String nameProject;
@@ -86,6 +89,8 @@ public class APIVersion {
 			this.classifierAPI = classifierAPI;
 			File path = new File(dirPath);
 			this.parseFilesInDir(path, true);
+			saveCallers(nameProject);
+//			setCallersFromJson(nameProject);
 		} catch (IOException e) {
 			this.logger.error("Erro ao criar APIVersion", e);
 		}
@@ -136,16 +141,33 @@ public class APIVersion {
 			CompilationUnit compilationUnit = (CompilationUnit) parser.createAST(null);
 			TypeDeclarationVisitor visitorType = new TypeDeclarationVisitor();
 			EnumDeclarationVisitor visitorEnum = new EnumDeclarationVisitor();
+			MethodInvocationVisitor visitorMethodCall = new MethodInvocationVisitor();
+
 			
 			compilationUnit.accept(visitorType);
 			compilationUnit.accept(visitorEnum);
+			compilationUnit.accept(visitorMethodCall);
 			
 			this.configureAcessiblesAndNonAccessibleTypes(visitorType);
 			this.configureAcessiblesAndNonAccessibleEnums(visitorEnum);
+			this.setCallers(visitorMethodCall.apiCallersMap,source.getAbsolutePath());
 		} catch (Exception e) {
 			this.logger.error("Erro ao criar AST sem source", e);
 		}
 
+	}
+
+	public void setCallers(List<Signature> signatures, String filePath){
+		this.apiCallersMap.put(filePath,signatures);}
+
+	public void saveCallers(String libName) throws IOException {
+		// libCallers/libName(g:a:v)
+		if(this.apiCallersMap.size()==0){return;}
+		String jsonPath = "libCallers/"+ libName+".json";
+		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(jsonPath)));
+		ObjectMapper mapper = new ObjectMapper();
+		bw.write(mapper.writeValueAsString(this.apiCallersMap));
+		bw.close();
 	}
 	
 	private void configureAcessiblesAndNonAccessibleTypes(TypeDeclarationVisitor visitorType){

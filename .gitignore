@@ -7,10 +7,12 @@
 target/
 adaptation/
 affected/
+app/
+libCallers/
 
 *.csv
 *.txt
-*.log
+*.log*
 *.jar
 .DS_Store
 

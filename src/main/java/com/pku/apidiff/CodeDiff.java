@@ -7,7 +7,6 @@ import com.github.difflib.patch.Chunk;
 import com.github.difflib.patch.Patch;
 import com.pku.libupgrade.DiffCommit;
 import com.pku.libupgrade.GitService;
-import com.pku.libupgrade.clientAnalysis.ClientAnalysis;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.jgit.lib.Repository;
 import org.slf4j.Logger;
@@ -83,6 +82,92 @@ public class CodeDiff {
 //        return codeDiff;
 //    }
 
+    public static List<String> getFileCodeDiff(String oldFilePath, String newFilePath, int contextWidth, int sourceCharNumber, String signature, String oldId, String newId) throws Exception {
+
+    int sourceLineNumber = getLineNumber(oldFilePath,sourceCharNumber);
+    AtomicInteger targetLineNumber = new AtomicInteger();
+    targetLineNumber.set(sourceLineNumber);
+    File src = new File(oldFilePath);
+    List<String> original = IOUtils.readLines(new FileInputStream(src), "UTF-8");
+    File target = new File(newFilePath);
+    if(!target.exists()){
+        logger.error("not exist this file in new version");
+        return new LinkedList<>();
+    }
+    List<String> revised = IOUtils.readLines(new FileInputStream(target), "UTF-8");
+    List<String> codeDiff = new LinkedList<>();
+    List<String> diffOriginal = new LinkedList<>();
+    List<String> diffPatched = new LinkedList<>();
+    Patch<String> diff = DiffUtils.diff(original, revised);
+    List<AbstractDelta<String>> deltas = diff.getDeltas();
+    AtomicReference<Boolean> isPoint = new AtomicReference<>(false);
+    deltas.forEach(delta -> {
+        switch (delta.getType()) {
+            case INSERT: // todo fix new file start with a new blank line
+                //新增
+                Chunk<String> insert = delta.getTarget();
+//                    System.out.println("+ " + (insert.getPosition() + 1) + " " + insert.getLines());
+                break;
+            case CHANGE:
+                //修改
+                Chunk<String> source = delta.getSource();
+                Chunk<String> target1 = delta.getTarget();
+                if (source.getPosition() == sourceLineNumber){
+                    System.out.println("\n- " + (source.getPosition() + 1) + " " + source.getLines() + "\n+ " + "" + (target1.getPosition() + 1) + " " + target1.getLines());
+                    diffOriginal.addAll(source.getLines());
+                    diffPatched.addAll(target1.getLines());
+                    targetLineNumber.set(target1.getPosition());
+                    isPoint.set(true);
+                }
+                break;
+            case DELETE:
+                //删除
+                Chunk<String> delete = delta.getSource();
+
+                if (delete.getPosition() == sourceLineNumber){
+                    System.out.println("- " + (delete.getPosition() + 1) + " " + delete.getLines());
+                    diffOriginal.addAll(delete.getLines());
+                    targetLineNumber.set(delete.getPosition());
+                    isPoint.set(true);
+                }
+                break;
+            case EQUAL:
+                System.out.println("无变化");
+                break;
+        }
+    });
+    if (!isPoint.get()){
+        logger.error("Find affected client code, but did not get adaptation. signature: "+signature+" sourceCharNumber: "+sourceCharNumber+oldId+" "+newId);
+        return codeDiff;
+    }
+    logger.error("get an adaptation");
+
+    List<String> resultDiffOriginal = getDiffWithContextFromLines(original,diffOriginal,sourceLineNumber,contextWidth,"-");
+    List<String> resultDiffPatched = getDiffWithContextFromLines(revised,diffPatched, targetLineNumber.get(),contextWidth,"+");
+//        List<String> resultDiffOriginal = getDiffWithContext(FilePath,diffOriginal,sourceLineNumber,contextWidth);
+//        List<String> resultDiffPatched = getDiffWithContext(targetFilePath,diffPatched, targetLineNumber.get(),contextWidth);
+    String affected = "affected/"+newId+"_"+oldId.split(":")[2]+"_" + signature + "_" + sourceLineNumber + "_"
+            + oldFilePath.replace('/','.').split("sources\\.")[1];
+    String adaptation = "adaptation/"+newId+"_"+oldId.split(":")[2]+"_" + signature + "_" + sourceLineNumber + "_"
+            + oldFilePath.replace('/','.').split("sources\\.")[1];
+    try{
+        writeFile(affected,resultDiffOriginal);
+        writeFile(adaptation,resultDiffPatched);
+    }
+    catch (Exception e){
+        logger.error("write adaptation error"+e);
+    }
+
+//        for(String i:resultDiffOriginal){
+//            System.out.println(i);
+//        }
+//        System.out.println("***************************************");
+//        for(String i:resultDiffPatched){
+//            System.out.println(i);
+//        }
+    return codeDiff;
+}
+
 
     public static List<String> getGitCodeDiff(String FilePath, DiffCommit diffCommit, int contextWidth, int sourceCharNumber,String signature) throws Exception {
 //        int sourceLineNumber = 92;
@@ -150,16 +235,21 @@ public class CodeDiff {
         }
         logger.error("get an adaptation");
 
-        List<String> resultDiffOriginal = getDiffWithContextFromLines(original,diffOriginal,sourceLineNumber,contextWidth);
-        List<String> resultDiffPatched = getDiffWithContextFromLines(revised,diffPatched, targetLineNumber.get(),contextWidth);
+        List<String> resultDiffOriginal = getDiffWithContextFromLines(original,diffOriginal,sourceLineNumber,contextWidth,"-");
+        List<String> resultDiffPatched = getDiffWithContextFromLines(revised,diffPatched, targetLineNumber.get(),contextWidth,"+");
 //        List<String> resultDiffOriginal = getDiffWithContext(FilePath,diffOriginal,sourceLineNumber,contextWidth);
 //        List<String> resultDiffPatched = getDiffWithContext(targetFilePath,diffPatched, targetLineNumber.get(),contextWidth);
-        String affected = "affected/"+diffCommit.libName+"-"+diffCommit.oldVersion+"-"+diffCommit.newVersion+"-" + signature + "-" + sourceLineNumber + "-"
+        String affected = "affected/"+diffCommit.libName+"_"+diffCommit.newCommit+"_"+diffCommit.commit+"_"+diffCommit.newVersion+"_"+diffCommit.oldVersion+"_" + signature + "_" + sourceLineNumber + "_"
                 + FilePath.replace('/','.').split("dataset\\.")[1];
-        String adaptation = "adaptation/"+ diffCommit.libName+"-"+diffCommit.oldVersion+"-"+diffCommit.newVersion+"-" + signature + "-" + sourceLineNumber + "-"
+        String adaptation = "adaptation/"+ diffCommit.libName+"_"+diffCommit.newCommit+"_"+diffCommit.commit+"_"+diffCommit.newVersion+"_"+diffCommit.oldVersion+"_" + signature + "_" + sourceLineNumber + "_"
                 + FilePath.replace('/','.').split("dataset\\.")[1];
-        writeFile(affected,resultDiffOriginal);
-        writeFile(adaptation,resultDiffPatched);
+        try{
+            writeFile(affected,resultDiffOriginal);
+            writeFile(adaptation,resultDiffPatched);
+        }
+        catch (Exception e){
+            logger.error("write adaptation error"+e);
+        }
 //        for(String i:resultDiffOriginal){
 //            System.out.println(i);
 //        }
@@ -179,10 +269,11 @@ public class CodeDiff {
         bw.close();
     }
 
-    public static List<String> getDiffWithContextFromLines(List<String> file,List<String> diff, int targetLineNumber, int contextWidth){
+    public static List<String> getDiffWithContextFromLines(List<String> file,List<String> diff, int targetLineNumber, int contextWidth, String padding){
         List<String> result = new LinkedList<>();
         int diffLength = diff.size();
         int lineNumber = 0;
+
         for(String line:file){
             // before
             if (targetLineNumber-contextWidth <= lineNumber && lineNumber < targetLineNumber){
@@ -190,7 +281,7 @@ public class CodeDiff {
             }
             // now
             if (targetLineNumber <= lineNumber && lineNumber < targetLineNumber + diffLength){
-                result.add(line);
+                result.add(padding+line);
             }
             // after
             if (targetLineNumber + diffLength <= lineNumber && lineNumber < targetLineNumber + diffLength + contextWidth){

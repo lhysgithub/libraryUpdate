@@ -134,7 +134,7 @@ public class DiffCommit {
                 version2 = inString.split(",")[7];
             }
             if(version2.contains("SNAPSHOT") || version1.contains("SNAPSHOT")){ continue; }
-            if(isExistOldCommit(inString.split(",")[2],outputFilePath)){ continue; }
+//            if(isExistOldCommit(inString.split(",")[2],outputFilePath)){ continue; }
             if(!isExist(inString,outputFilePath)){
                 csvWriter.write(inString);
                 csvWriter.endRecord();

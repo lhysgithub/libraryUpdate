@@ -1,9 +1,10 @@
 package com.pku.apidiff;
 
 //import apidiff.internal.util.UtilTools;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pku.libupgrade.DiffCommit;
 import com.pku.libupgrade.GitService;
-import com.pku.libupgrade.clientAnalysis.ClientAnalysis;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
@@ -16,6 +17,9 @@ import java.io.*;
 import java.util.*;
 
 import static com.pku.apidiff.CodeDiff.getGitCodeDiff;
+import static com.pku.apidiff.CodeDiff.getFileCodeDiff;
+import static com.pku.libupgrade.PomParser.USER_LOCAL_REPO;
+import static com.pku.libupgrade.Utils.sortByValue2;
 
 
 // 输入 breakingChanges, commitDiffs
@@ -136,7 +140,7 @@ public class FindAdaptation {
 //        return signature;
 //    }
 
-    public static List<String> getSignatureFromString(String s) {
+    public static List<String> getSignatureSimpleNameFromBreakingChangeQualifiedNameString(String s) {
         List<String> signature = new LinkedList<>();
         // targetSignature
         String targetSignature = s.split("-")[0];
@@ -154,13 +158,20 @@ public class FindAdaptation {
         String list = targetSignature.split("\\(")[1].split("\\)")[0];
         for (String para : list.split(",")) {
             Integer size = para.split(" ").length;
-            signature.add(para.split(" ")[size - 2]);
+            if(size==1){
+                signature.add(para.split(" ")[size - 1]);
+            }
+            else{
+                signature.add(para.split(" ")[size - 2]);
+            }
         }
 
         // target object
         signature.add(targetObjectTypeStack[targetObjectTypeStack.length-1]);
         return signature;
     }
+
+
 
     public static Map<String,List<AffectedCode>> getAffectedDiffCommit(String signature, DiffCommit diffCommit) throws Exception {
         String clientPath =  "../dataset/"+diffCommit.clientName;
@@ -170,28 +181,13 @@ public class FindAdaptation {
         File client = new File(clientPath);
         Map<String,List<Signature>> allCallerSignaturesOfProject = new HashMap<>();
         getAllSignatureProjectLeve(clientPath,client,allCallerSignaturesOfProject);
-        List<String> targetSignature =  getSignatureFromString(signature);
+        List<String> targetSignature =  getSignatureSimpleNameFromBreakingChangeQualifiedNameString(signature);
         Map<String,List<AffectedCode>> affected = new HashMap<>();
         for(String filePath: allCallerSignaturesOfProject.keySet()){
             List<AffectedCode> temp = new ArrayList<>();
             for(Signature s: allCallerSignaturesOfProject.get(filePath)){
                 List<String> nowSignature = Arrays.asList(s.signature.split(" "));
-                 // Signature not equal on length
-                 if (nowSignature.size() != targetSignature.size()){
-                    continue;
-                }
-                // Signature matching
-                Boolean isEqual = true;
-                for(Integer i=0; i<nowSignature.size();i++){
-                    if(nowSignature.get(i).equals("null") || targetSignature.get(i).equals("null")){
-                        continue;
-                    }
-                    if(!nowSignature.get(i).equals(targetSignature.get(i))){ // todo fix type analysis
-                        isEqual = false;
-                        break;
-                    }
-                }
-                if(isEqual){
+                if(isEqualSignatureStringList(nowSignature,targetSignature)){
                     temp.add(new AffectedCode(s,diffCommit));
                 }
             }
@@ -210,34 +206,135 @@ public class FindAdaptation {
         }
     }
 
+//
+
+    public static Map<String, List<Signature>> setCallersFromJson(String libName) throws IOException {
+        // libCallers/libName(g:a:v)
+        Map<String, List<Signature>>  apiCallersMap = new HashMap<>();
+        String jsonPath = "libCallers/"+ libName+".json";
+        BufferedReader br = new BufferedReader(new FileReader(new File(jsonPath)));
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode parser = mapper.readTree(br);
+        for (Iterator<String> it = parser.fieldNames(); it.hasNext(); ) {
+            String filePath = it.next();
+            JsonNode item = parser.get(filePath);
+            List<Signature> tempSig = new LinkedList<>();
+            for(JsonNode j:item){
+                Signature temp =new Signature(j.get("signature").asText(),j.get("position").asInt());
+                tempSig.add(temp);
+            }
+            apiCallersMap.put(filePath,tempSig);
+        }
+        return apiCallersMap;
+    }
+
+    public static void findAffectedCodeAndAdaptationFrom3rdLib(Map<String, List<Signature>> oldVersion3rdLibCallers,List<String> breakingChangeSignaturesQualifiedName,String oldLibId,String newLibId) throws Exception {
+        for (String key:oldVersion3rdLibCallers.keySet()){
+            for(Signature callSig:oldVersion3rdLibCallers.get(key)){
+                for(String breakQualifiedSig:breakingChangeSignaturesQualifiedName){
+                    if (isEqualSignatureStringAndList(callSig.signature,getSignatureSimpleNameFromBreakingChangeQualifiedNameString(breakQualifiedSig))){// find affected code
+                        String newProjectPath = getProjectPath(newLibId);
+                        String filePathInProject = key.split("sources")[1];
+                        getCodePathFromLibSelf(key,newProjectPath+filePathInProject,callSig,oldLibId,newLibId);
+
+                    }
+                }
+            }
+        }
+    }
+
+    public static String getProjectPath(String id){
+        String groupId=id.split(":")[0],artifactId=id.split(":")[1],versionId =id.split(":")[2];
+        String localCentral = USER_LOCAL_REPO+"/";
+        String filePath = "";
+        for(String temp:groupId.split("\\.")){
+            filePath = filePath + temp + "/";
+        }
+        filePath = filePath + artifactId + "/";
+        filePath = filePath + versionId + "/";
+        filePath = filePath + artifactId + "-" + versionId + "-sources";
+        return localCentral+filePath;
+    }
+
+    public static void getCodePathFromLibSelf(String oldFilePath,String newFilePath,Signature callSig,String oldId,String newId) throws Exception {
+        // filePath1 filePath2
+        getFileCodeDiff(oldFilePath,newFilePath,20,callSig.position,callSig.signature,oldId,newId);
+    }
+
+    public static boolean isEqualSignatureString(String sig1, String sig2){
+        List<String> sig1List = Arrays.asList(sig1.split(" "));
+        List<String> sig2List = Arrays.asList(sig2.split(" "));
+        return isEqualSignatureStringList(sig1List,sig2List);
+    }
+
+    public static boolean isEqualSignatureStringAndList(String sig1, List<String> sig2List){
+        List<String> sig1List = Arrays.asList(sig1.split(" "));
+        return isEqualSignatureStringList(sig1List,sig2List);
+    }
+
+    public static boolean isEqualSignatureStringList(List<String>  sig1List, List<String> sig2List){
+        // Signature not equal on length
+        if (sig1List.size()!=sig2List.size()){
+            return false;
+        }
+        Boolean isEqual = true;
+        for(Integer i=0; i<sig1List.size();i++){
+            if(sig1List.get(i).equals("null") || sig2List.get(i).equals("null")){
+                continue;
+            }
+            if(!sig1List.get(i).equals(sig2List.get(i))){ // todo fix type analysis
+                isEqual = false;
+                break;
+            }
+        }
+        return isEqual;
+    }
+
     public static void getAffectedCode(String breakingChangesDir) throws Exception {
         File bcd = new File(breakingChangesDir);
-        List<String>  targetSignatures = new LinkedList<>();
-        List<DiffCommit> targetDiffCommits = new LinkedList<>();
+//        List<String>  targetSignatures = new LinkedList<>();
+//        List<DiffCommit> targetDiffCommits = new LinkedList<>();
         Map<String,List<AffectedCode>> affectedCode;
-        int k =0;
+        Map<BreakChangeSet,Integer> bks = new HashMap<>();
         for(File f: Objects.requireNonNull(bcd.listFiles())){ // 对于每一组破坏性变更版本，提取所有的破坏性变更Signature
+            if(f.getName().equals(".DS_Store")){continue;}
+            int temp = Integer.parseInt((f.getName().split("_")[0]));
+            bks.put(new BreakChangeSet(f.getName().split("_")[1],f.getName().split("_")[2].split("\\.txt")[0]),temp);
+        }
+        bks = sortByValue2(bks);
+        int k =0;
+        for (BreakChangeSet key:bks.keySet()){
+//        for(File f: Objects.requireNonNull(bcd.listFiles())){ // 对于每一组破坏性变更版本，提取所有的破坏性变更Signature
 //            if(k<1){
 //                k++;
 //                continue;
 //            }
 //            k++;
-            if(f.getName().equals(".DS_Store")){continue;}
+//            if(f.getName().equals(".DS_Store")){continue;}
             logger.error("fetchBreakingChangeLibAndVersions...");
-            String newVersion = f.getName().split("_")[0];
-            String oldVersion = f.getName().split("_")[1].split("\\.txt")[0];
+//            String newVersion = f.getName().split("_")[0];
+//            String oldVersion = f.getName().split("_")[1].split("\\.txt")[0];
+            String newLibId = key.newLibId;
+            String oldLibId = key.oldLibId;
             logger.error("getBreakingChangeSignatures...");
-            List<String> breakingChangeSignatures = getBreakingChangeSignatures(f.getAbsolutePath());
+            List<String> breakingChangeSignaturesQualifiedName = getBreakingChangeSignatures(breakingChangesDir+"/"+bks.get(key)+"_"+newLibId+"_"+oldLibId+".txt");
+            // UMLDiff
+//            Map<String, List<Signature>> oldVersion3rdLibCallers = setCallersFromJson(oldLibId);
+//            findAffectedCodeAndAdaptationFrom3rdLib(oldVersion3rdLibCallers,breakingChangeSignaturesQualifiedName,oldLibId,newLibId);
+            // UMLDiff end
+
+            // pkuDiff
             List<String> checkedSignature = new LinkedList<>();
-            targetSignatures.addAll(breakingChangeSignatures);
+//            targetSignatures.addAll(breakingChangeSignaturesQualifiedName);
             logger.error("findAffectedClientDiffCommit...");
-            List<DiffCommit> possibleAffectedDiffCommit = findAffectedClientDiffCommit("commitDiff1.csv",newVersion,oldVersion);
-            targetDiffCommits.addAll(possibleAffectedDiffCommit);  // 筛选客户端diffCommit: 客户端存在将第三方库从A版本升级到B版本的行为
-            logger.error("breakingChangeSignatures.size: "+ breakingChangeSignatures.size());
+            List<DiffCommit> possibleAffectedDiffCommit = findAffectedClientDiffCommit("commitDiff1.csv",newLibId,oldLibId);
+//            targetDiffCommits.addAll(possibleAffectedDiffCommit);  // 筛选客户端diffCommit: 客户端存在将第三方库从A版本升级到B版本的行为
+            logger.error("breakingChangeSignaturesQualifiedName.size: "+ breakingChangeSignaturesQualifiedName.size());
             logger.error("possibleAffectedDiffCommit.size: "+ possibleAffectedDiffCommit.size());
             logger.error("getAffectedDiffCommit...");
             int i =0;
-            for(String s: breakingChangeSignatures){ // 对于所有的破坏性变更Signature
+            // getAllCallerAt3rdLib
+            for(String s: breakingChangeSignaturesQualifiedName){ // 对于所有的破坏性变更Signature Qualitative qualified
 //                if(i<48) {
 //                    i++;
 //                    continue;
@@ -245,9 +342,10 @@ public class FindAdaptation {
 //                i++;
                 if (checkedSignature.contains(s)) {continue;}
                 checkedSignature.add(s);
-                logger.error("for breakingChangeSignatures..."+s+ " "+ newVersion + " "+ oldVersion);
+                logger.error("for breakingChangeSignaturesQualifiedName..."+s+ " "+ newLibId + " "+ oldLibId);
                 Set<String> checkedCommit = new HashSet<>();
                 int j=0;
+                // TODO:detect adaptation on 3rd lib
                 for(DiffCommit d:possibleAffectedDiffCommit){
 //                    if(j<1){
 //                        j++;
@@ -279,6 +377,7 @@ public class FindAdaptation {
                     }
                 }
             }
+            // pkuDiff end
         }
 
 //        getBreakingChangeSignatures()

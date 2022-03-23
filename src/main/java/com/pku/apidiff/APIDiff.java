@@ -71,9 +71,9 @@ public class APIDiff implements DiffDetector{
 		Utils.downloadPopularMavenRepository("popularLib.txt", "../dataset/");
 	}
 
-	public static void apiDiff(String oldPath, String newPath, String versionPairPath) throws Exception {
+	public static void apiDiff(String oldPath, String newPath,String oldId, String newId, String versionPairPath) throws Exception {
 		APIDiff diff = new APIDiff();
-		Result result = diff.diffLib(oldPath, newPath,diff.nameProject, Classifier.API);
+		Result result = diff.diffLib(oldPath, newPath,oldId ,newId, Classifier.API);
 		if (result.getChangeMethod().size()==0) {return;}
 		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(versionPairPath)));
 //		for(Change changeType : result.getChangeType()){
@@ -186,9 +186,9 @@ public class APIDiff implements DiffDetector{
 	}
 
 
-	private Result diffLib(final String oldPath, final String newPath, String nameProject, Classifier classifierAPI) throws Exception{
-		APIVersion version1 = new APIVersion(nameProject,oldPath,classifierAPI);//old version
-		APIVersion version2 = new APIVersion(nameProject,newPath,classifierAPI);//new version
+	private Result diffLib(final String oldPath, final String newPath, String oldId, String newId, Classifier classifierAPI) throws Exception{
+		APIVersion version1 = new APIVersion(oldId,oldPath,classifierAPI);//old version
+		APIVersion version2 = new APIVersion(newId,newPath,classifierAPI);//new version
 		DiffProcessor diff = new DiffProcessorImpl();
 		return diff.detectChange(version1, version2); // todo waite for repair
 	}
