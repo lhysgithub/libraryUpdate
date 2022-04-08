@@ -92,6 +92,7 @@ public class APIVersion {
 			saveCallers(nameProject);
 //			setCallersFromJson(nameProject);
 		} catch (IOException e) {
+			e.printStackTrace();
 			this.logger.error("Erro ao criar APIVersion", e);
 		}
 	}
@@ -105,7 +106,12 @@ public class APIVersion {
 		} else {
 			if(file.listFiles() != null){
 				for (File f : file.listFiles()) {
-					this.parseFilesInDir(f, ignoreTreeDiff);
+					try {
+						this.parseFilesInDir(f, ignoreTreeDiff);
+					}
+					catch (Exception e){
+						e.printStackTrace();
+					}
 				}
 			}
 		}
@@ -152,6 +158,7 @@ public class APIVersion {
 			this.configureAcessiblesAndNonAccessibleEnums(visitorEnum);
 			this.setCallers(visitorMethodCall.apiCallersMap,source.getAbsolutePath());
 		} catch (Exception e) {
+			e.printStackTrace();
 			this.logger.error("Erro ao criar AST sem source", e);
 		}
 

@@ -146,9 +146,17 @@ public class CodeDiff {
     List<String> resultDiffPatched = getDiffWithContextFromLines(revised,diffPatched, targetLineNumber.get(),contextWidth,"+");
 //        List<String> resultDiffOriginal = getDiffWithContext(FilePath,diffOriginal,sourceLineNumber,contextWidth);
 //        List<String> resultDiffPatched = getDiffWithContext(targetFilePath,diffPatched, targetLineNumber.get(),contextWidth);
-    String affected = "affected/"+newId+"_"+oldId.split(":")[2]+"_" + signature + "_" + sourceLineNumber + "_"
+        String affectedFileDirStr = "affected/library/"+newId+"_"+oldId.split(":")[2]+"/";
+        String adaptationFileDirStr = "adaptation/library/"+newId+"_"+oldId.split(":")[2]+"/";
+        File affectedFileDir = new File(affectedFileDirStr);
+        File adaptationFileDir = new File(adaptationFileDirStr);
+        if(!affectedFileDir.exists()){
+            affectedFileDir.mkdirs();
+            adaptationFileDir.mkdirs();
+        }
+        String affected = affectedFileDirStr + signature + "_" + sourceLineNumber + "_"
             + oldFilePath.replace('/','.').split("sources\\.")[1];
-    String adaptation = "adaptation/"+newId+"_"+oldId.split(":")[2]+"_" + signature + "_" + sourceLineNumber + "_"
+        String adaptation = adaptationFileDirStr + signature + "_" + sourceLineNumber + "_"
             + oldFilePath.replace('/','.').split("sources\\.")[1];
     try{
         writeFile(affected,resultDiffOriginal);
@@ -239,9 +247,17 @@ public class CodeDiff {
         List<String> resultDiffPatched = getDiffWithContextFromLines(revised,diffPatched, targetLineNumber.get(),contextWidth,"+");
 //        List<String> resultDiffOriginal = getDiffWithContext(FilePath,diffOriginal,sourceLineNumber,contextWidth);
 //        List<String> resultDiffPatched = getDiffWithContext(targetFilePath,diffPatched, targetLineNumber.get(),contextWidth);
-        String affected = "affected/"+diffCommit.libName+"_"+diffCommit.newCommit+"_"+diffCommit.commit+"_"+diffCommit.newVersion+"_"+diffCommit.oldVersion+"_" + signature + "_" + sourceLineNumber + "_"
+        String affectedFileDirStr = "affected/client/"+diffCommit.libName+"/"+diffCommit.newVersion+"_"+diffCommit.oldVersion+"/"+diffCommit.clientName+"/"+diffCommit.newCommit+"_"+diffCommit.commit+"/";
+        String adaptationFileDirStr = "adaptation/client/"+diffCommit.libName+"/"+diffCommit.newVersion+"_"+diffCommit.oldVersion+"/"+diffCommit.clientName+"/"+diffCommit.newCommit+"_"+diffCommit.commit+"/";
+        File affectedFileDir = new File(affectedFileDirStr);
+        File adaptationFileDir = new File(adaptationFileDirStr);
+        if(!affectedFileDir.exists()){
+            affectedFileDir.mkdirs();
+            adaptationFileDir.mkdirs();
+        }
+        String affected = affectedFileDirStr + signature + "_" + sourceLineNumber + "_"
                 + FilePath.replace('/','.').split("dataset\\.")[1];
-        String adaptation = "adaptation/"+ diffCommit.libName+"_"+diffCommit.newCommit+"_"+diffCommit.commit+"_"+diffCommit.newVersion+"_"+diffCommit.oldVersion+"_" + signature + "_" + sourceLineNumber + "_"
+        String adaptation = adaptationFileDirStr + signature + "_" + sourceLineNumber + "_"
                 + FilePath.replace('/','.').split("dataset\\.")[1];
         try{
             writeFile(affected,resultDiffOriginal);

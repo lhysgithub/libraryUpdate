@@ -5,10 +5,8 @@ import com.pku.libupgrade.Commit;
 import com.pku.libupgrade.DiffCommit;
 import com.pku.libupgrade.PomParser;
 import com.pku.libupgrade.Utils;
-import org.eclipse.jgit.api.CheckoutCommand;
-import org.eclipse.jgit.api.CleanCommand;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ResetCommand;
+import org.eclipse.jgit.api.*;
+import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -52,11 +50,11 @@ public class ClientAnalysis {
         assert fs != null;
         for(File f:fs){					        //遍历File[]数组
             if(f.isDirectory())
-                if (i<3){
-                    i++;
-                    continue;
-                }
-                i++;
+//                if (i<3){
+//                    i++;
+//                    continue;
+//                }
+//                i++;
                 projectName = f.getName();
                 if(Utils.isProjectExist(projectName,"commitDiff.csv")) {continue;}
             System.out.println(f.getName());
@@ -200,9 +198,22 @@ public class ClientAnalysis {
 
         ClientAnalysis clientAnalysis = new ClientAnalysis();
         Repository repository = clientAnalysis.openRepository(projectPath, projectName);
-        List<String> commitIds = clientAnalysis.getAllCommitId(repository, "master"); // todo: if not have master branch
+//        List<String> commitIds = clientAnalysis.getAllCommitId(repository, "master"); // todo: if not have master branch
+        Git git = new Git(repository);
+        ListTagCommand listTagCommand=git.tagList();
+        List<Ref> refs=listTagCommand.call();
+        List<String> commitIds=new ArrayList<>();
+        List<String> tagList=new ArrayList<>();
+        for(Ref ref:refs){
+//            System.out.println(ref.getName().replace("refs/tags/",""));
+//            System.out.println(ref.getObjectId().getName());
+            tagList.add(ref.getName().replace("refs/tags/",""));
+            commitIds.add(ref.getObjectId().getName());
+        }
+//        System.out.println(commitIds.size());
+//        System.out.println(tagList.size());
 //        System.out.println("repository.getBranch:"+repository.getBranch());
-        System.out.println("projectName: "+ projectName + "commits' size: "+commitIds.size());
+        System.out.println("projectName: "+ projectName + " commits' size: "+commitIds.size()+" tag's size: "+tagList.size());
         List<Commit> versionMap = new ArrayList<>();
         // commit pomName libName versionName
         for (String commitId : commitIds) {
@@ -227,13 +238,17 @@ public class ClientAnalysis {
 //                    e.printStackTrace();
                     ;
                 }
-                totPomInfoMap.put(pomPath.replace(projectPath, ""), pomInfoMap);
+                totPomInfoMap.put(pomPath.replace(projectPath, ""), pomInfoMap); // do not anonymize username
+//                totPomInfoMap.put(pomPath.split(projectPath)[1], pomInfoMap); // this is the true path, but pomParse
+//                has running
             }
             System.out.println(totPomInfoMap);
             versionMap.add(new Commit(commitId,totPomInfoMap));
         }
         List<DiffCommit> diffList = Utils.getDiffList(versionMap, projectName);
         System.out.println("diffList size: "+diffList.size());
+        File commitDiffFile = new File("commitDiff.csv");
+        if (!commitDiffFile.exists()) {commitDiffFile.createNewFile();}
         for (DiffCommit it : diffList){
             it.print();
             it.saveCSV("commitDiff.csv");

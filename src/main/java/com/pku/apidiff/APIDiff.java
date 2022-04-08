@@ -108,9 +108,10 @@ public class APIDiff implements DiffDetector{
 			result.getChangeMethod().addAll(resultByClassifier.getChangeMethod());
 			result.getChangeField().addAll(resultByClassifier.getChangeField());
 		} catch (Exception e) {
-			this.logger.error("Error in calculating commitn diff ", e);
+			e.printStackTrace();
+			logger.error("Error in calculating commitn diff ", e);
 		}
-		this.logger.info("Finished processing.");
+		logger.info("Finished processing.");
 		return result;
 	}
 	

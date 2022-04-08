@@ -108,13 +108,14 @@ public class Utils {
 //                    groupIDCounter.put(groupID,tempValue);
 //                }
             }
-            counter = sortByValue2(counter);
-            versionPairCounter = sortByValue2(versionPairCounter);
+//            counter = sortByValue2(counter);
+//            versionPairCounter = sortByValue2(versionPairCounter);
+            versionPairCounter = sortByValue2Ascending(versionPairCounter);
 //            groupIDCounter = sortByValue2(groupIDCounter);
 //            System.out.println("GroupID + ArtifactID: "+counter);
 //            System.out.println("versionPairCounter: "+versionPairCounter);
 //            System.out.println("GroupID: "+groupIDCounter);
-            result.add("GroupID + ArtifactID: "+counter);
+//            result.add("GroupID + ArtifactID: "+counter);
             result.add("versionPairCounter: "+versionPairCounter);
 //            result.add("GroupID: "+groupIDCounter);
 //            pw.write("GroupID + ArtifactID: "+counter+'\n');
@@ -147,17 +148,54 @@ public class Utils {
         return res;
     }
 
+    public static <T> LinkedHashMap<T, Integer> sortByValue2Ascending(Map<T, Integer> hm) {
+        // HashMap的entry放到List中
+        List<Map.Entry<T, Integer>> list =
+                new LinkedList<Map.Entry<T, Integer>>(hm.entrySet());
+
+        //  对List按entry的value排序
+        Collections.sort(list, new Comparator<Map.Entry<T, Integer>>() {
+            public int compare(Map.Entry<T, Integer> o1,
+                               Map.Entry<T, Integer> o2) {
+                return ((o1.getValue()).compareTo(o2.getValue()));
+            }
+        });
+
+        LinkedHashMap<T, Integer> res = new LinkedHashMap<>();
+        for (Map.Entry<T, Integer> aa : list) {
+            res.put(aa.getKey(), aa.getValue());
+        }
+        return res;
+    }
+
     public static void downloadPopularMavenRepository(String popularLibListPath, String LibRootPath) throws Exception {
         BufferedReader popularLibs = new BufferedReader(new FileReader(new File(popularLibListPath))); // todo fix
         String line = popularLibs.readLine();
         List<String> popularLibList = new LinkedList<>();
+        File breakingChangesDir = new File("breakingChanges/");
+        if (!breakingChangesDir.exists()){breakingChangesDir.mkdirs();}
         if(line!=null){
             String[] split = line.split("\\{")[1].split("}")[0].split(",");
             int i=0;
+            int j =0;
             for(String str:split){
-                if(i>=100){
-                    break;
-                }
+                // 限制流行库的个数
+                if(str.contains("junit")){continue;}
+                if(str.contains("test")){continue;}
+                if(str.contains("gwt")){continue;}
+                if(str.contains("guava")){continue;}
+                if(str.contains("jdt")){continue;}
+                if(str.contains("truth")){continue;}
+//                if(i<13){
+//                    i++;
+//                    continue;
+//                }
+                i++;
+                System.out.println("Parsing Library "+i);
+//                if(i>=100){
+//                    break;
+//                }
+                //
                 String popularTimes = str.split("=")[1];
                 String[] temp = str.split("=")[0].split(":");
                 String groupId = temp[0];
@@ -186,7 +224,8 @@ public class Utils {
                     e.printStackTrace();
                     continue;
                 }
-                i++;
+                j++;
+                System.out.println("Parsing APIDiff "+j);
             }
         }
 

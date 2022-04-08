@@ -58,7 +58,7 @@ public class DiffCommit {
     public void saveCSV(String filePath) throws IOException {
         // verify is existed？
         String insertContent = clientName+","+newCommit+","+commit+","+pomName+","+libName+","+isNew.toString()+","+newVersion+","+ oldVersion;
-        if(isExist(insertContent,filePath)){ return ;}
+//        if(isExist(insertContent,filePath)){ return ;}
 
         // insert
         File outFile  = new File(filePath);
@@ -125,6 +125,16 @@ public class DiffCommit {
             inString = inString.split("\"")[1];
             String version1 = inString.split(",")[6];
             List<String> tempString = Arrays.asList(inString.split(","));
+            String clientName = tempString.get(0);
+            String newCommit = tempString.get(1);
+            String oldCommit = tempString.get(2);
+            String pomPath = tempString.get(3);
+            String libName = tempString.get(4);
+            String isNew = tempString.get(5);
+            String separator = "libraryUpdate/";
+            if (pomPath.contains(separator)){
+                pomPath = pomPath.split(separator)[1];
+            }
             String version2;
             if (tempString.size()==7){
                 version2 = "";
@@ -135,6 +145,7 @@ public class DiffCommit {
             }
             if(version2.contains("SNAPSHOT") || version1.contains("SNAPSHOT")){ continue; }
 //            if(isExistOldCommit(inString.split(",")[2],outputFilePath)){ continue; }
+            inString = clientName+","+newCommit+","+oldCommit+","+pomPath+","+libName+","+isNew+","+version1+","+version2;
             if(!isExist(inString,outputFilePath)){
                 csvWriter.write(inString);
                 csvWriter.endRecord();

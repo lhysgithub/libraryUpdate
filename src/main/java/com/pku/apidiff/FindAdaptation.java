@@ -296,16 +296,42 @@ public class FindAdaptation {
 //        List<DiffCommit> targetDiffCommits = new LinkedList<>();
         Map<String,List<AffectedCode>> affectedCode;
         Map<BreakChangeSet,Integer> bks = new HashMap<>();
+        int w =0;
         for(File f: Objects.requireNonNull(bcd.listFiles())){ // 对于每一组破坏性变更版本，提取所有的破坏性变更Signature
+//            if(w>0){
+//                w++;
+//                continue;
+//            }
+//            w++;
             if(f.getName().equals(".DS_Store")){continue;}
+            if(f.getName().contains("junit")){continue;}
+            if(f.getName().contains("test")){continue;}
+            if(f.getName().contains("gwt")){continue;}
+            if(f.getName().contains("guava")){continue;}
+            if(f.getName().contains("jdt")){continue;}
+            if(f.getName().contains("truth")){continue;}
             int temp = Integer.parseInt((f.getName().split("_")[0]));
             bks.put(new BreakChangeSet(f.getName().split("_")[1],f.getName().split("_")[2].split("\\.txt")[0]),temp);
         }
         bks = sortByValue2(bks);
+        // UML Diff
+        for (BreakChangeSet key:bks.keySet()) {
+            logger.error("fetchBreakingChangeLibAndVersions...");
+            String newLibId = key.newLibId;
+            String oldLibId = key.oldLibId;
+            logger.error("getBreakingChangeSignatures...");
+            List<String> breakingChangeSignaturesQualifiedName = getBreakingChangeSignatures(breakingChangesDir + "/" + bks.get(key) + "_" + newLibId + "_" + oldLibId + ".txt");
+            // UMLDiff
+            Map<String, List<Signature>> oldVersion3rdLibCallers = setCallersFromJson(oldLibId);
+            findAffectedCodeAndAdaptationFrom3rdLib(oldVersion3rdLibCallers,breakingChangeSignaturesQualifiedName,oldLibId,newLibId);
+            // UMLDiff end
+        }
+        // UML Diff end
+
         int k =0;
         for (BreakChangeSet key:bks.keySet()){
 //        for(File f: Objects.requireNonNull(bcd.listFiles())){ // 对于每一组破坏性变更版本，提取所有的破坏性变更Signature
-//            if(k<1){
+//            if(k<5){
 //                k++;
 //                continue;
 //            }
@@ -335,7 +361,7 @@ public class FindAdaptation {
             int i =0;
             // getAllCallerAt3rdLib
             for(String s: breakingChangeSignaturesQualifiedName){ // 对于所有的破坏性变更Signature Qualitative qualified
-//                if(i<48) {
+//                if(i<8) {
 //                    i++;
 //                    continue;
 //                }
@@ -344,7 +370,7 @@ public class FindAdaptation {
                 checkedSignature.add(s);
                 logger.error("for breakingChangeSignaturesQualifiedName..."+s+ " "+ newLibId + " "+ oldLibId);
                 Set<String> checkedCommit = new HashSet<>();
-                int j=0;
+                int j =0;
                 // TODO:detect adaptation on 3rd lib
                 for(DiffCommit d:possibleAffectedDiffCommit){
 //                    if(j<1){
@@ -365,7 +391,7 @@ public class FindAdaptation {
 //                        affectedCode = new HashMap<>();
 //                        logger.error(e.toString());
 //                    }
-                    affectedCode = retryGetAffectedDiffCommit(s,d,0);
+                    affectedCode = retryGetAffectedDiffCommit(s,d,0,1);
                     if (affectedCode.size()!=0){
                         checkedCommit.add(d.commit);
                         logger.error("affectedCode.size: "+affectedCode.size());
@@ -383,8 +409,8 @@ public class FindAdaptation {
 //        getBreakingChangeSignatures()
     }
 
-    public static Map<String,List<AffectedCode>> retryGetAffectedDiffCommit(String s, DiffCommit d ,int retryTimes){
-        if (retryTimes>=3){
+    public static Map<String,List<AffectedCode>> retryGetAffectedDiffCommit(String s, DiffCommit d ,int retryTimes, int upperTimes){
+        if (retryTimes>=upperTimes){
             return new HashMap<>();
         }
         Map<String,List<AffectedCode>> affectedCode;
@@ -395,11 +421,18 @@ public class FindAdaptation {
         }
         catch (Exception e){
             logger.error(e.toString());
-            return retryGetAffectedDiffCommit(s,d,retryTimes+1);
+            e.printStackTrace();
+            return retryGetAffectedDiffCommit(s,d,retryTimes+1,upperTimes);
         }
     }
 
+    public static Map<String,List<AffectedCode>> getAffectedDiffCommitWithoutRetry(String s, DiffCommit d ,int retryTimes, int upperTimes) throws Exception {
+        Map<String,List<AffectedCode>> affectedCode;
+        affectedCode = getAffectedDiffCommit(s,d); // 筛选客户端diffCommit: oldCommit 调用了 第三方库 breaking change 之前的 API
+        return affectedCode;
+    }
+
     public static void main(String[] args) throws Exception {
-        getAffectedCode("breakingChanges");
+        getAffectedCode("breakingChanges1");
     }
 }
