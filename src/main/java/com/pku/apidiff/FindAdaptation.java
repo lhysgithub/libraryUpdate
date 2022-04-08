@@ -63,10 +63,47 @@ public class FindAdaptation {
 //        visitorMethodInvocation.getSourceCodeSnippet();
 //        System.out.println(visitorMethodInvocation.getCallers().size());
 //    }
+    public static Map<String, List<Signature>> setClientCallersFromJson(String jsonPath) throws IOException {
+        // libCallers/libName(g:a:v)
+        Map<String, List<Signature>>  apiCallersMap = new HashMap<>();
+        File json = new File(jsonPath);
+        if (!json.exists()) {return apiCallersMap;}
+        BufferedReader br = new BufferedReader(new FileReader(new File(jsonPath)));
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode parser = mapper.readTree(br);
+        for (Iterator<String> it = parser.fieldNames(); it.hasNext(); ) {
+            String filePath = it.next();
+            JsonNode item = parser.get(filePath);
+            List<Signature> tempSig = new LinkedList<>();
+            for(JsonNode j:item){
+                Signature temp =new Signature(j.get("signature").asText(),j.get("position").asInt());
+                tempSig.add(temp);
+            }
+            apiCallersMap.put(filePath,tempSig);
+        }
+        return apiCallersMap;
+    }
+
+    public static Map<String,List<Signature>> getAllSignatureProjectLeveFromJsonOrAST(String  projectPath, File file, String commit) throws IOException {
+//        File targetDir = new File(targetPath);
+        Map<String,List<Signature>> allCallerSignaturesOfProject;
+        String jsonName = "clientCallers/"+file.getName()+"/"+commit+ ".json";
+        File jsonFile = new File(jsonName);
+        if (jsonFile.exists()){ // 已经保存了该commit的all caller
+            logger.error("getAllSignatureProjectLeveFromJson");
+            allCallerSignaturesOfProject = setClientCallersFromJson(jsonName);
+            return allCallerSignaturesOfProject;
+        }
+        allCallerSignaturesOfProject = new HashMap<>();
+        logger.error("getAllSignatureProjectLeveFromAST");
+        getAllSignatureProjectLeve(projectPath,file,allCallerSignaturesOfProject);
+        saveCallers(file.getName(),allCallerSignaturesOfProject,commit);
+        return allCallerSignaturesOfProject;
+    }
 
     public static void getAllSignatureProjectLeve(String  projectPath, File file, Map<String,List<Signature>> allCallerSignaturesOfProject) throws IOException {
 //        File targetDir = new File(targetPath);
-        if (file.isDirectory()){
+        if (file.isDirectory()){ // 未保存了该commit的all caller, 静态分析并提取
             for(File f: Objects.requireNonNull(file.listFiles())){
                if (f.isDirectory()) getAllSignatureProjectLeve(projectPath,f,allCallerSignaturesOfProject);
                if (f.isFile() && f.getName().contains(".java")) getAllSignatureFileLevel(f.getAbsolutePath(),allCallerSignaturesOfProject);
@@ -75,6 +112,19 @@ public class FindAdaptation {
         else {
             logger.error("Error for getAllSignatureProjectLeve");
         }
+    }
+
+    public static void saveCallers(String clientName, Map<String,List<Signature>> allCallerSignaturesOfProject, String commit) throws IOException {
+        // libCallers/libName(g:a:v)
+        if(allCallerSignaturesOfProject.size()==0){return;}
+        String jsonDir = "clientCallers/"+clientName+"/";
+        File jsonPathDir = new File(jsonDir);
+        if (!jsonPathDir.exists()){jsonPathDir.mkdirs();}
+        String jsonPath = jsonDir +commit+ ".json";
+        BufferedWriter bw = new BufferedWriter(new FileWriter(new File(jsonPath)));
+        ObjectMapper mapper = new ObjectMapper();
+        bw.write(mapper.writeValueAsString(allCallerSignaturesOfProject));
+        bw.close();
     }
 
     public static void getAllSignatureFileLevel(String targetPath,Map<String,List<Signature>> allCallerSignaturesOfProject) throws IOException {
@@ -179,8 +229,7 @@ public class FindAdaptation {
         GitService.checkout(r,diffCommit.commit);
         logger.error("getAllSignatureProjectLeve..." + clientPath);
         File client = new File(clientPath);
-        Map<String,List<Signature>> allCallerSignaturesOfProject = new HashMap<>();
-        getAllSignatureProjectLeve(clientPath,client,allCallerSignaturesOfProject);
+        Map<String,List<Signature>> allCallerSignaturesOfProject = getAllSignatureProjectLeveFromJsonOrAST(clientPath,client,diffCommit.commit);
         List<String> targetSignature =  getSignatureSimpleNameFromBreakingChangeQualifiedNameString(signature);
         Map<String,List<AffectedCode>> affected = new HashMap<>();
         for(String filePath: allCallerSignaturesOfProject.keySet()){
@@ -212,6 +261,8 @@ public class FindAdaptation {
         // libCallers/libName(g:a:v)
         Map<String, List<Signature>>  apiCallersMap = new HashMap<>();
         String jsonPath = "libCallers/"+ libName+".json";
+        File json = new File(jsonPath);
+        if (!json.exists()) {return apiCallersMap;}
         BufferedReader br = new BufferedReader(new FileReader(new File(jsonPath)));
         ObjectMapper mapper = new ObjectMapper();
         JsonNode parser = mapper.readTree(br);
@@ -315,17 +366,17 @@ public class FindAdaptation {
         }
         bks = sortByValue2(bks);
         // UML Diff
-        for (BreakChangeSet key:bks.keySet()) {
-            logger.error("fetchBreakingChangeLibAndVersions...");
-            String newLibId = key.newLibId;
-            String oldLibId = key.oldLibId;
-            logger.error("getBreakingChangeSignatures...");
-            List<String> breakingChangeSignaturesQualifiedName = getBreakingChangeSignatures(breakingChangesDir + "/" + bks.get(key) + "_" + newLibId + "_" + oldLibId + ".txt");
-            // UMLDiff
-            Map<String, List<Signature>> oldVersion3rdLibCallers = setCallersFromJson(oldLibId);
-            findAffectedCodeAndAdaptationFrom3rdLib(oldVersion3rdLibCallers,breakingChangeSignaturesQualifiedName,oldLibId,newLibId);
-            // UMLDiff end
-        }
+//        for (BreakChangeSet key:bks.keySet()) {
+//            logger.error("fetchBreakingChangeLibAndVersions...");
+//            String newLibId = key.newLibId;
+//            String oldLibId = key.oldLibId;
+//            logger.error("getBreakingChangeSignatures...");
+//            List<String> breakingChangeSignaturesQualifiedName = getBreakingChangeSignatures(breakingChangesDir + "/" + bks.get(key) + "_" + newLibId + "_" + oldLibId + ".txt");
+//            // UMLDiff
+//            Map<String, List<Signature>> oldVersion3rdLibCallers = setCallersFromJson(oldLibId);
+//            findAffectedCodeAndAdaptationFrom3rdLib(oldVersion3rdLibCallers,breakingChangeSignaturesQualifiedName,oldLibId,newLibId);
+//            // UMLDiff end
+//        }
         // UML Diff end
 
         int k =0;

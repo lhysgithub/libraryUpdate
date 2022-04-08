@@ -9,6 +9,7 @@ adaptation/
 affected/
 app/
 libCallers/
+clientCallers/
 
 *.csv
 *.txt
