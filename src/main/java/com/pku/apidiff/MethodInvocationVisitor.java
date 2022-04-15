@@ -2,6 +2,7 @@ package com.pku.apidiff;
 
 import org.eclipse.jdt.core.dom.*;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -9,8 +10,10 @@ public class MethodInvocationVisitor extends ASTVisitor{
 //    private String methodSignature = "null handleBuildError(final ReactorContext buildContext, final MavenSession rootSession, final MavenProject mavenProject, Exception e, final long buildStartTime)";
 //    private String methodName = "calculateExecutionPlan";
 //    private List<String> signature = new LinkedList<>();
-    private List<MethodInvocation> callers = new LinkedList<>();
-    private List<Signature> callerSignatures = new LinkedList<>();
+//    public List<MethodInvocation> callers = new LinkedList<>();
+    public List<Caller> callerSignatures = new LinkedList<>();
+    public List<TypeUsage> apiTypeUsages = new ArrayList<>();
+    public List<FieldUsage> apiFieldUsages = new ArrayList<>();
 //    public void setTargetMethod(String methodSignature) {
 //        this.methodSignature = methodSignature;
 //        this.methodName=methodSignature.split("\\(")[0].split(" ")[1];
@@ -29,15 +32,15 @@ public class MethodInvocationVisitor extends ASTVisitor{
 //            signature.add(para.split(" ")[size-2]);
 //        }
 //    }
-    public List<MethodInvocation> getCallers(){ return this.callers; }
-    public List<Signature> getCallerSignatures(){ return this.callerSignatures; }
+//    public List<MethodInvocation> getCallers(){ return this.callers; }
+//    public List<Caller> getCallerSignatures(){ return this.callerSignatures; }
 
-    public void getSourceCodeSnippet(){
-        for(MethodInvocation i:callers){
-            System.out.println("StartPosition:" + i.getStartPosition());
-            System.out.println("Length:" + i.getLength());
-        }
-    }
+//    public void getSourceCodeSnippet(){
+//        for(MethodInvocation i:callers){
+//            System.out.println("StartPosition:" + i.getStartPosition());
+//            System.out.println("Length:" + i.getLength());
+//        }
+//    }
 
     public List<String> getCallerSignatureFromMethodInvocation(MethodInvocation node){
         List<String> signature = new LinkedList<>();
@@ -106,12 +109,36 @@ public class MethodInvocationVisitor extends ASTVisitor{
 //            j++;
 //        }
 
-        callers.add(node);
-        callerSignatures.add(Signature.getSignatureFromStringList(signature,node.getStartPosition()));
+//        callers.add(node);
+        callerSignatures.add(Caller.getSignatureFromStringList(signature,node.getStartPosition()));
 
         return super.visit(node);
     }
+    @Override // QualifiedName = FieldAccess   may work // not include member function
+    public boolean visit(QualifiedName node)   {
+        String typeName;
+        if (node.getQualifier().resolveTypeBinding()!=null){typeName = node.getQualifier().resolveTypeBinding().getName();}
+        else{typeName="null";}
+        String fieldName = node.getName().toString();
+        int position  = node.getStartPosition();
+        apiFieldUsages.add(new FieldUsage(typeName,fieldName,position));
+//        System.out.println(node);
+        return super.visit(node);
+    }
 
+    //    worked
+    @Override // VariableDeclarationStatement may work
+    public boolean visit(VariableDeclarationStatement node)   {
+        String typeName;
+        if (node.getType().resolveBinding()!=null){typeName = node.getType().resolveBinding().getName();}
+        else {typeName = "null";}
+        int position = node.getStartPosition();
+        apiTypeUsages.add(new TypeUsage(typeName,position));
+//        System.out.println(typeName);
+//        System.out.println(position);
+//        System.out.println(node);
+        return super.visit(node);
+    }
 //    public boolean visitWithTargetSignature(MethodInvocation node) {
 //        List<String> signature = new LinkedList<>();
 //

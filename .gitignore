@@ -10,6 +10,12 @@ affected/
 app/
 libCallers/
 clientCallers/
+clientFieldUsages/
+clientTypeUsages/
+breakingChanges/
+breakingChanges1/
+breakingChanges1_old/
+breakingChanges_old/
 
 *.csv
 *.txt

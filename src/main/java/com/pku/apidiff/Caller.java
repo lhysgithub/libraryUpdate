@@ -2,11 +2,11 @@ package com.pku.apidiff;
 
 import java.util.List;
 
-public class Signature {
+public class Caller {
     public String signature;
     public int position;
-    public Signature(String signature, int position){this.signature = signature; this.position = position;}
-    public static Signature getSignatureFromStringList(List<String> signature, int position){
+    public Caller(String signature, int position){this.signature = signature; this.position = position;}
+    public static Caller getSignatureFromStringList(List<String> signature, int position){
         // add caller
         StringBuilder str = new StringBuilder();
         int j =0;
@@ -15,6 +15,6 @@ public class Signature {
             else str.append(" ").append(i);
             j++;
         }
-        return new Signature(str.toString(),position);
+        return new Caller(str.toString(),position);
     }
 }

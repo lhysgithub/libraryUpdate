@@ -1,8 +1,9 @@
 package com.pku.apidiff.internal.visitor;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.pku.apidiff.Signature;
+import com.pku.apidiff.Caller;
+import com.pku.apidiff.FieldUsage;
+import com.pku.apidiff.TypeUsage;
 import com.pku.apidiff.enums.Classifier;
 import com.pku.apidiff.internal.analysis.comparator.ComparatorMethod;
 import com.pku.apidiff.internal.service.git.GitFile;
@@ -12,6 +13,7 @@ import org.eclipse.jdt.core.dom.*;
 import org.eclipse.jgit.diff.DiffEntry.ChangeType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.pku.apidiff.MethodInvocationVisitor;
 
 import java.io.*;
 import java.util.*;
@@ -23,7 +25,9 @@ public class APIVersion {
 	private ArrayList<EnumDeclaration> apiAccessibleEnums = new ArrayList<EnumDeclaration>();
 	private ArrayList<EnumDeclaration> apiNonAccessibleEnums = new ArrayList<EnumDeclaration>();
 	private Map<ChangeType, List<GitFile>> mapModifications = new HashMap<ChangeType, List<GitFile>>();
-	public Map<String, List<Signature>>  apiCallersMap = new HashMap<>();
+	public Map<String, List<Caller>>  apiCallersMap = new HashMap<>();
+	public Map<String, List<TypeUsage>>  apiTypeUsagesMap = new HashMap<>();
+	public Map<String, List<FieldUsage>>  apiFieldUsagesMap = new HashMap<>();
 	private List<String> listFilesMofify = new ArrayList<String>();
 	private Classifier classifierAPI;
 	private String nameProject;
@@ -90,6 +94,8 @@ public class APIVersion {
 			File path = new File(dirPath);
 			this.parseFilesInDir(path, true);
 			saveCallers(nameProject);
+			saveTypeUsages(nameProject);
+			saveFieldUsages(nameProject);
 //			setCallersFromJson(nameProject);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -156,16 +162,23 @@ public class APIVersion {
 			
 			this.configureAcessiblesAndNonAccessibleTypes(visitorType);
 			this.configureAcessiblesAndNonAccessibleEnums(visitorEnum);
-			this.setCallers(visitorMethodCall.apiCallersMap,source.getAbsolutePath());
+			this.setCallers(visitorMethodCall.callerSignatures,source.getAbsolutePath());
+			this.setTypeUsages(visitorMethodCall.apiTypeUsages,source.getAbsolutePath());
+			this.setFieldUsages(visitorMethodCall.apiFieldUsages,source.getAbsolutePath());
 		} catch (Exception e) {
 			e.printStackTrace();
 			this.logger.error("Erro ao criar AST sem source", e);
 		}
-
 	}
 
-	public void setCallers(List<Signature> signatures, String filePath){
+	public void setCallers(List<Caller> signatures, String filePath){
 		this.apiCallersMap.put(filePath,signatures);}
+
+	public void setTypeUsages(List<TypeUsage> typeUsages, String filePath){
+		this.apiTypeUsagesMap.put(filePath,typeUsages);}
+
+	public void setFieldUsages(List<FieldUsage> fieldUsages, String filePath){
+		this.apiFieldUsagesMap.put(filePath,fieldUsages);}
 
 	public void saveCallers(String libName) throws IOException {
 		// libCallers/libName(g:a:v)
@@ -174,6 +187,26 @@ public class APIVersion {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(jsonPath)));
 		ObjectMapper mapper = new ObjectMapper();
 		bw.write(mapper.writeValueAsString(this.apiCallersMap));
+		bw.close();
+	}
+
+	public void saveTypeUsages(String libName) throws IOException {
+		// libCallers/libName(g:a:v)
+		if(this.apiTypeUsagesMap.size()==0){return;}
+		String jsonPath = "libTypeUsages/"+ libName+".json";
+		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(jsonPath)));
+		ObjectMapper mapper = new ObjectMapper();
+		bw.write(mapper.writeValueAsString(this.apiTypeUsagesMap));
+		bw.close();
+	}
+
+	public void saveFieldUsages(String libName) throws IOException {
+		// libCallers/libName(g:a:v)
+		if(this.apiFieldUsagesMap.size()==0){return;}
+		String jsonPath = "libFieldUsages/"+ libName+".json";
+		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(jsonPath)));
+		ObjectMapper mapper = new ObjectMapper();
+		bw.write(mapper.writeValueAsString(this.apiFieldUsagesMap));
 		bw.close();
 	}
 	

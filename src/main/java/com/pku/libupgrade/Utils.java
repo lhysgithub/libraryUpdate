@@ -2,6 +2,9 @@ package com.pku.libupgrade;
 
 import com.csvreader.CsvReader;
 import com.pku.apidiff.APIDiff;
+import com.pku.apidiff.FindAdaptation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.pku.libupgrade.PomParser.MAVEN_CENTRAL_URI;
 import static com.pku.libupgrade.PomParser.USER_LOCAL_REPO;
@@ -12,6 +15,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class Utils {
+    public static Logger logger = LoggerFactory.getLogger(Utils.class);
 
     public static Map<String, String> readOutLibraries(String pom) {
         String localRepo = System.getProperty("maven.repo.local", USER_LOCAL_REPO);
@@ -168,16 +172,34 @@ public class Utils {
         return res;
     }
 
+    public static List<String> getFileLines(File checkedBCFiles) throws IOException {
+        List<String> checkedBCFilesList = new ArrayList<>();
+        String line;
+        BufferedReader br = new BufferedReader(new FileReader(checkedBCFiles));
+        while ( (line=br.readLine())!=null ) {
+            checkedBCFilesList.add(line);
+        }
+        br.close();
+        return checkedBCFilesList;
+    }
+
     public static void downloadPopularMavenRepository(String popularLibListPath, String LibRootPath) throws Exception {
         BufferedReader popularLibs = new BufferedReader(new FileReader(new File(popularLibListPath))); // todo fix
         String line = popularLibs.readLine();
         List<String> popularLibList = new LinkedList<>();
         File breakingChangesDir = new File("breakingChanges/");
         if (!breakingChangesDir.exists()){breakingChangesDir.mkdirs();}
+
+        File parsedBCFiles = new File("parsedBCFiles.txt");
+        if (!parsedBCFiles.exists()){parsedBCFiles.createNewFile();}
+        List<String> parsedBCFilesList = getFileLines(parsedBCFiles);
+        BufferedWriter bw = new BufferedWriter(new FileWriter(parsedBCFiles,false));
+
         if(line!=null){
             String[] split = line.split("\\{")[1].split("}")[0].split(",");
             int i=0;
             int j =0;
+            int lengthLibPars = split.length;
             for(String str:split){
                 // 限制流行库的个数
                 if(str.contains("junit")){continue;}
@@ -191,7 +213,7 @@ public class Utils {
 //                    continue;
 //                }
                 i++;
-                System.out.println("Parsing Library "+i);
+                logger.error("Parsing Library "+i + "/" + lengthLibPars);
 //                if(i>=100){
 //                    break;
 //                }
@@ -210,23 +232,26 @@ public class Utils {
                 if(oldVersion.contains("SNAPSHOT")){continue;}
                 if(newVersion.contains("SNAPSHOT")){continue;}
                 try {
-                    System.out.println("Downloading "+newId+" ...");
+                    logger.error("Downloading "+newId+" ...");
                     String newVersionDir = PomParser.DownloadMavenLib(newId);
-                    System.out.println("Downloading "+oldId+" ...");
+                    logger.error("Downloading "+oldId+" ...");
                     String oldVersionDir = PomParser.DownloadMavenLib(oldId);
-                    System.out.println("ApiDiffing "+newId +" and "+oldId+" ...");
+                    logger.error("ApiDiffing "+newId +" and "+oldId+" ...");
                     if(versionPair.equals("com.taobao.arthas:arthas-common:3.5.2_com.taobao.arthas:arthas-common:3.5.1.txt")){
-                        System.out.println("target");
+                        logger.error("target");
                     }
+                    if (parsedBCFilesList.contains(versionPair)){bw.write(versionPair+"\n");bw.flush();continue;}
                     APIDiff.apiDiff(oldVersionDir,newVersionDir,oldId,newId,"breakingChanges/"+versionPair);
+                    bw.write(versionPair+"\n");bw.flush();
                 }
                 catch (Exception e){
                     e.printStackTrace();
                     continue;
                 }
                 j++;
-                System.out.println("Parsing APIDiff "+j);
+                logger.error("Parsing APIDiff "+j);
             }
+            bw.close();
         }
 
     }

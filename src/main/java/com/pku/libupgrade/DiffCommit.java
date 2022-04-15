@@ -2,6 +2,8 @@ package com.pku.libupgrade;
 
 import com.csvreader.CsvReader;
 import com.csvreader.CsvWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.Arrays;
@@ -16,6 +18,8 @@ public class DiffCommit {
     public Boolean isNew;
     public String oldVersion;
     public String newVersion;
+    public static Logger logger = LoggerFactory.getLogger(DiffCommit.class);
+
     DiffCommit(String commit_, String newCommit_, String client_name_, String pomName_, String lib_name_, Boolean is_new_,
                String old_version_, String new_version_){
         commit = commit_;
@@ -41,15 +45,7 @@ public class DiffCommit {
         newVersion = temp[6];
     }
     public void print(){
-        System.out.println("clientName: "+clientName);
-        System.out.println("newCommit: "+ newCommit);
-        System.out.println("oldCommit: "+commit);
-        System.out.println("pomName: "+pomName);
-        System.out.println("libName: "+libName);
-        System.out.println("isNew: "+isNew);
-        System.out.println("oldVersion: "+oldVersion);
-        System.out.println("newVersion: "+newVersion);
-        System.out.println("");
+        logger.error(toString());
     }
     @Override
     public String toString(){

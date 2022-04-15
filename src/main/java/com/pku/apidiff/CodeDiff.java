@@ -113,7 +113,7 @@ public class CodeDiff {
                 Chunk<String> source = delta.getSource();
                 Chunk<String> target1 = delta.getTarget();
                 if (source.getPosition() == sourceLineNumber){
-                    System.out.println("\n- " + (source.getPosition() + 1) + " " + source.getLines() + "\n+ " + "" + (target1.getPosition() + 1) + " " + target1.getLines());
+                    logger.error("\n- " + (source.getPosition() + 1) + " " + source.getLines() + "\n+ " + "" + (target1.getPosition() + 1) + " " + target1.getLines());
                     diffOriginal.addAll(source.getLines());
                     diffPatched.addAll(target1.getLines());
                     targetLineNumber.set(target1.getPosition());
@@ -125,14 +125,14 @@ public class CodeDiff {
                 Chunk<String> delete = delta.getSource();
 
                 if (delete.getPosition() == sourceLineNumber){
-                    System.out.println("- " + (delete.getPosition() + 1) + " " + delete.getLines());
+                    logger.error("- " + (delete.getPosition() + 1) + " " + delete.getLines());
                     diffOriginal.addAll(delete.getLines());
                     targetLineNumber.set(delete.getPosition());
                     isPoint.set(true);
                 }
                 break;
             case EQUAL:
-                System.out.println("无变化");
+                System.out.println("no change");
                 break;
         }
     });
@@ -214,7 +214,7 @@ public class CodeDiff {
                     Chunk<String> source = delta.getSource();
                     Chunk<String> target1 = delta.getTarget();
                     if (source.getPosition() == sourceLineNumber){
-                        System.out.println("\n- " + (source.getPosition() + 1) + " " + source.getLines() + "\n+ " + "" + (target1.getPosition() + 1) + " " + target1.getLines());
+                        logger.error("\n- " + (source.getPosition() + 1) + " " + source.getLines() + "\n+ " + "" + (target1.getPosition() + 1) + " " + target1.getLines());
                         diffOriginal.addAll(source.getLines());
                         diffPatched.addAll(target1.getLines());
                         targetLineNumber.set(target1.getPosition());
@@ -226,14 +226,14 @@ public class CodeDiff {
                     Chunk<String> delete = delta.getSource();
 
                     if (delete.getPosition() == sourceLineNumber){
-                        System.out.println("- " + (delete.getPosition() + 1) + " " + delete.getLines());
+                        logger.error("- " + (delete.getPosition() + 1) + " " + delete.getLines());
                         diffOriginal.addAll(delete.getLines());
                         targetLineNumber.set(delete.getPosition());
                         isPoint.set(true);
                     }
                     break;
                 case EQUAL:
-                    System.out.println("无变化");
+                    logger.error("no change");
                     break;
             }
         });
@@ -292,6 +292,30 @@ public class CodeDiff {
 
         for(String line:file){
             // before
+            if (lineNumber < targetLineNumber){
+                result.add(line);
+            }
+            // now
+            if (targetLineNumber <= lineNumber && lineNumber < targetLineNumber + diffLength){
+                result.add(padding+line);
+            }
+            // after
+            if (targetLineNumber + diffLength <= lineNumber){
+                result.add(line);
+            }
+            lineNumber++;
+        }
+        return result;
+    }
+
+
+    public static List<String> getDiffWithContextFromLinesOld(List<String> file,List<String> diff, int targetLineNumber, int contextWidth, String padding){
+        List<String> result = new LinkedList<>();
+        int diffLength = diff.size();
+        int lineNumber = 0;
+
+        for(String line:file){
+            // before
             if (targetLineNumber-contextWidth <= lineNumber && lineNumber < targetLineNumber){
                 result.add(line);
             }
@@ -307,7 +331,6 @@ public class CodeDiff {
         }
         return result;
     }
-
 //    public static List<String> getDiffWithContextFromFile(String filePath,List<String> diff, int targetLineNumber, int contextWidth) throws IOException {
 //        List<String> result = new LinkedList<>();
 //        int diffLength = diff.size();

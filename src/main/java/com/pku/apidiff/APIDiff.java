@@ -37,7 +37,7 @@ public class APIDiff implements DiffDetector{
 	
 	private String url;
 
-	private static Logger logger = LoggerFactory.getLogger(ClientAnalysis.class);
+	public static Logger logger = LoggerFactory.getLogger(APIDiff.class);
 
 	public APIDiff() {
 	}
@@ -74,24 +74,23 @@ public class APIDiff implements DiffDetector{
 	public static void apiDiff(String oldPath, String newPath,String oldId, String newId, String versionPairPath) throws Exception {
 		APIDiff diff = new APIDiff();
 		Result result = diff.diffLib(oldPath, newPath,oldId ,newId, Classifier.API);
-		if (result.getChangeMethod().size()==0) {return;}
+		if (result.getChangeMethod().size()==0 && result.getChangeField().size()==0 && result.getChangeType().size()==0) {return;}
 		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(versionPairPath)));
-//		for(Change changeType : result.getChangeType()){
-//			System.out.println("Type: "+ changeType.getCategory().getDisplayName() + " - " + changeType.getDescription());
-//			bw.write("Type: "+changeType.getCategory().getDisplayName() + " - " + changeType.getDescription() + '\n');
-//			bw.flush();
-//		}
-
+		for(Change changeType : result.getChangeType()){
+			logger.error("Type: "+ changeType.getCategory().getDisplayName() + " - " + changeType.getDescription());
+			bw.write("Type: "+changeType.getCategory().getDisplayName() + " - " + changeType.getDescription() + '\n');
+			bw.flush();
+		}
 		for(Change changeMethod : result.getChangeMethod()){
-			System.out.println("Method: "+ changeMethod.getCategory().getDisplayName() + " - " + changeMethod.getDescription());
+			logger.error("Method: "+ changeMethod.getCategory().getDisplayName() + " - " + changeMethod.getDescription());
 			bw.write("Method: "+changeMethod.getCategory().getDisplayName() + " - " + changeMethod.getDescription() + '\n');
 			bw.flush();
 		}
-//		for(Change changeField : result.getChangeField()){
-//			System.out.println("Field: "+ changeField.getCategory().getDisplayName() + " - " + changeField.getDescription());
-//			bw.write("Field: "+changeField.getCategory().getDisplayName() + " - " + changeField.getDescription() + '\n');
-//			bw.flush();
-//		}
+		for(Change changeField : result.getChangeField()){
+			logger.error("Field: "+ changeField.getCategory().getDisplayName() + " - " + changeField.getDescription());
+			bw.write("Field: "+changeField.getCategory().getDisplayName() + " - " + changeField.getDescription() + '\n');
+			bw.flush();
+		}
 		bw.close();
 	}
 
