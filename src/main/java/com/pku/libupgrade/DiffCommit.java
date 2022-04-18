@@ -142,12 +142,12 @@ public class DiffCommit {
             if(version2.contains("SNAPSHOT") || version1.contains("SNAPSHOT")){ continue; }
 //            if(isExistOldCommit(inString.split(",")[2],outputFilePath)){ continue; }
             inString = clientName+","+newCommit+","+oldCommit+","+pomPath+","+libName+","+isNew+","+version1+","+version2;
-            if(!isExist(inString,outputFilePath)){
-                csvWriter.write(inString);
-                csvWriter.endRecord();
-                csvWriter.flush();
-
-            }
+//            if(!isExist(inString,outputFilePath)){
+//                continue;
+//            }
+            csvWriter.write(inString);
+            csvWriter.endRecord();
+            csvWriter.flush();
         }
         csvReader.close();
         csvWriter.close();

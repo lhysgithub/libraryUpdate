@@ -183,6 +183,8 @@ public class APIVersion {
 	public void saveCallers(String libName) throws IOException {
 		// libCallers/libName(g:a:v)
 		if(this.apiCallersMap.size()==0){return;}
+		File dirName = new File("libCallers/");
+		if (!dirName.exists()) {dirName.mkdirs();}
 		String jsonPath = "libCallers/"+ libName+".json";
 		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(jsonPath)));
 		ObjectMapper mapper = new ObjectMapper();
@@ -193,6 +195,8 @@ public class APIVersion {
 	public void saveTypeUsages(String libName) throws IOException {
 		// libCallers/libName(g:a:v)
 		if(this.apiTypeUsagesMap.size()==0){return;}
+		File dirName = new File("libTypeUsages/");
+		if (!dirName.exists()) {dirName.mkdirs();}
 		String jsonPath = "libTypeUsages/"+ libName+".json";
 		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(jsonPath)));
 		ObjectMapper mapper = new ObjectMapper();
@@ -203,6 +207,8 @@ public class APIVersion {
 	public void saveFieldUsages(String libName) throws IOException {
 		// libCallers/libName(g:a:v)
 		if(this.apiFieldUsagesMap.size()==0){return;}
+		File dirName = new File("libFieldUsages/");
+		if (!dirName.exists()) {dirName.mkdirs();}
 		String jsonPath = "libFieldUsages/"+ libName+".json";
 		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(jsonPath)));
 		ObjectMapper mapper = new ObjectMapper();

@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>groupId</groupId>
-    <artifactId>ClientAnalysis</artifactId>
+    <artifactId>APIDiff</artifactId>
     <version>1.0</version>
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -268,7 +268,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        com.pku.libupgrade.clientAnalysis.ClientAnalysis
+                                        com.pku.apidiff.APIDiff
                                     </mainClass>
                                 </manifest>
                             </archive>

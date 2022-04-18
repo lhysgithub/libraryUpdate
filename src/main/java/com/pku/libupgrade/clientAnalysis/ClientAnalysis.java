@@ -17,13 +17,16 @@ import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static com.pku.apidiff.APIDiff.apiDiff;
 import static com.pku.apidiff.FindAdaptation.getAffectedCode;
 import static com.pku.libupgrade.PomParser.pomParse;
+import static com.pku.libupgrade.Utils.getFileLines;
 
 public class ClientAnalysis {
 //    public static void main(String[] args) throws Exception {
@@ -31,6 +34,7 @@ public class ClientAnalysis {
 //        apiDiff();
 //        getAffectedCode("breakingChanges");
 //    }
+//    codenvy,
     public static String bigProjects = "nexus-public,nexus-public,openapi-generator,ORCID-Source,BroadleafCommerce,gulimall-learning,nifty-gui,tencentcloud-sdk-java,jena,k,ksql,goclipse,imagej2,kylin,jcodec,TrackRay,shopping-mmall,hbase,microservices-platform,jpmml-sklearn,ansj_seg,openpnp,dependency-track,jgraphx,AuthMeReloaded,nodebox,freedomotic,bdp-platform,druid,keycloak-quickstarts,WebCollector,helicalinsight,Cloud9,datagear,jdonframework,midpoint,liquibase,graphify,vert.x,skywalking,infinitest,opennms,resteasy,product-ei,dbeaver,dropwizard,ojAlgo,zxing,roboguice,zingg,libjitsi,Cynthia,quarkus,sia-task,thingsboard,zstack,UniversalMediaServer,Spring-Cloud-Platform,pentaho-platform,multibit,tlaplus,tutorials,kogito-runtimes,iri,ObjectLogger,hop,karaf,james-project,sqlite-jdbc,dss,captcha,cdhproject,SecurityShepherd,idecore,MMall,BenchmarkJava,WebLogic-Shiro-shell,mqcloud,basex,jenkins,checkstyle,CorfuDB,pwm,simplenlg,pulsar,TexasHoldemSolverJava,sql4es,opensearchserver,thucydides,SikuliX-2014,AudioBookConverter,searchcode-server,javacpp-presets,jigasi,wildfly,steady,wicket,soapui,rome,h2o-2,TwelveMonkeys,aircompressor,engine,archi,isis,cat,ios-driver,hops,Haafiz,simpleimage,itextpdf,presto,floodlight,javamelody,IPED,dataverse,dataease,primefaces,zeppelin,pentaho-kettle,cbioportal,tess4j,openaudible,hazelcast-jet,maven-framework-project,wro4j,hadoop-mini-clusters,data-algorithms-book,legacy-jclouds,easyexcel,pmd,datashare,evosuite,aerogear-unifiedpush-server,jave2,scouter,openmeetings,google-api-java-client-services,jblas,hyscale,infinispan,gravitee-api-management,Springboot-Notebook,soot,cogcomp-nlp,metron,EFAK,netty,droolsjbpm-integration,oshi,jstorm,mondrian,datawave,jMetal,t-vault,robovm,ldbz-shop,kylo,MediathekView,inception,rascal,atmosphere,picocli,OptimizedImageEnhance,burlap,ofdrw,gridgain-old,finmath-lib,mcg-helper,unidbg,kite,product-is,Java_NFe,zookeeper,book,framework,kkFileView,iotdb,innodb-java-reader,hetu-core,pdfbox,maven-plugins,studio3,jOOQ,fixflow,UML-Designer,UICrawler,Spark,WebGoat-Legacy,BiglyBT,plc4x,springcloud-2020,consulo,tetrad,jersey,sensei,javaCrawling,questdb,languagetool,hive,minicat,mogu_blog_v2,jmc,SproutLife,google-cloud-java,jackson-databind,neuralnetworks,gwt-bootstrap,librec,Elasticsearch-Hbase,OpenRefine,ShiroAttack2,nbscala,RedisClient,angel,OpenTripPlanner,OpenMetadata,cdk,hazelcast,libreplan,htm.java,OpenLegislation,kkFileViewOfficeEdit,webprotege,drill,ditto,robospice,jackson-core,hibernate-search,Pydev,repairnator,server,SquidLib,majiang_algorithm,XR3Player,ambari,jpress,Activiti,movsim,groovy-eclipse,incubator-linkis,esper,Ant-Media-Server,egeria,openhab1-addons,flink,helidon,html2file,aws-toolkit-eclipse,database,CERMINE,nuxeo,appfuse,smarthome,Payara,metersphere,Gaffer,xmall,hopsworks,azure-sdk-for-java,waffle,ranger,nifi,novel-plus,birt,hadoop,mesh,cello,neo4j,sonar-cxx,liugh-parent,JCloisterZone,ruoyi-vue-pro,mybatis-3,weblaf,opencast,mage,dataloader,Achilles,Chronicle-Queue,heideltime,nuls-v1,sonic-server-simple,voxelshop,galaxysql,Vault,jackrabbit,byte-buddy,jstarcraft-rns,matsim-libs,graylog2-server,wetech-admin,Minim,LIRE,SchemaCrawler,keycloak,phoenix,Bytecoder,spring-cloud-contract,Makelangelo-software,accumulo,helix,cxf,structr,itext7,superword,VnCoreNLP,hapi-fhir,morphia,activemq-artemis,drools,hera,hawtio,DependencyCheck,cloudsimplus,oltpbench,lwjglbook,backend,davmail,hazelcast-code-samples,product-apim,exist,lwjgl3,pallas,pinot,zeebe,Essentials,hudi,word,dew,MicroCommunity,athenz,ES-Fastloader,camel,AppiumTestDistribution,spring-cloud-shop,logging-log4j2,owlapi,kafka-streams-machine-learning-examples,bolo-solo,framework-learning,youlai-mall,manifold,Chronicle-Core,flexmark-java,CoreNLP,kubernetes-client,killbill,ovirt-engine,DataSphereStudio,dolphinscheduler,core-geonetwork,openwebflow,Discovery,jetty.project,iveely.search,tika,dcm4che,SuperMarket,solo,trino,SikuliX1,guava,ontop,anserini,cyberduck,Android-Cookbook-Examples,arx,docx4j,Web-Karma,AsciidocFX,cldr,DataCleaner,tern.java,itranswarp,jclouds,Universal-G-Code-Sender,alluxio,openimaj,s3s3mirror,jeecg,vespa,HiBench,miaosha,github-api,titan,xJavaFxTool,jackrabbit-oak,teiid,mp4parser,ongdb,sakai,spring-security-registration,binnavi,msgraph-sdk-java,knime-core,shardingsphere,orientdb,choco-solver,error-prone,spring-ide,erupt,gephi,mahout,archiva,OpenClinica,ignite,rexster,DWSurvey,cf-java-client,cloudstack,biojava,yago3,FXGL,WS-Attacker,org.openwms,htmlunit,geowave,amazon-kinesis-scaling-utils,gatk,blinkid-android,alipay-sdk-java-all,storm,shopizer,light-task-scheduler,struts,atlas,shop,openmrs-core,google-drive-ftp-adapter,deeplearning4j,lumify,dal,DBus,cdap,mall-learning,jflex,pinpoint,wecube-platform,opsu,tinkerpop,Kylin,xwiki-platform,Openfire,opengrok,sonar-java,zanata-platform,Shop-for-JavaWeb,openhab-addons,XLearning,openiot,camunda-bpm-platform,optaplanner,findbugs,airsonic,onedev,CQL,bytecode-viewer,teavm,tomee,systemds,TornadoVM,gisgraphy,flowable-engine,graphhopper";
 //    public static String[] bigProjectsList;
     public static void main(String[] argss) throws Exception {
@@ -38,6 +42,12 @@ public class ClientAnalysis {
         String projectPath = "../dataset/";
         String projectName = "plantuml";
         File commitDiffFile = new File("commitDiff.csv");
+
+        File checkedClientFiles = new File("checkedClientFiles.txt");
+        if (!checkedClientFiles.exists()){checkedClientFiles.createNewFile();}
+        List<String> parsedBCFilesList = getFileLines(checkedClientFiles);
+        BufferedWriter bw = new BufferedWriter(new FileWriter(checkedClientFiles,false));
+
         if (!commitDiffFile.exists()) {commitDiffFile.createNewFile();}
         //        String localSourceDir =  PomParser.DownloadMavenLib("org.apache.maven:maven-core:3.0.4");
         //        String localSourceDir =  PomParser.DownloadMavenLib("org.apache.maven:maven-core:3.1.0");
@@ -64,8 +74,10 @@ public class ClientAnalysis {
             logger.error("pomParse " + i + "/" + lengthProject+f.getName());
             if (bigProjects.contains(projectName)) {continue;} // 跳过大项目
             if(Utils.isProjectExist(projectName,"commitDiff.csv")) {continue;}
+            if (parsedBCFilesList.contains(projectName)){bw.write(projectName+"\n");bw.flush();continue;}
             detectVersionChange(projectPath,projectName);
         }
+        bw.close();
         //        Utils.findPopularLibFromCsv("commitDiff.csv","popularLib.txt");
         //        MongoDBJDBC.findPopularLib();
     }
@@ -232,7 +244,8 @@ public class ClientAnalysis {
                 break;
             }
             clientAnalysis.recordPomFilePath = new ArrayList<>();
-            clientAnalysis.getPomPath(new File(projectPath + "/" + projectName+"/" +"pom.xml"));
+            clientAnalysis.getPomPath(new File(projectPath + "/" + projectName));
+            //+"/" +"pom.xml"
             Map<String, Map<String, String>> totPomInfoMap = new HashMap<>();
             for (String pomPath : clientAnalysis.recordPomFilePath) {
                 Map<String, String> pomInfoMap = new HashMap<>();

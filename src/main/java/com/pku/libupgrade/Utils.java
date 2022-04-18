@@ -231,6 +231,7 @@ public class Utils {
                 if(oldVersion.equals("null")){continue;}
                 if(oldVersion.contains("SNAPSHOT")){continue;}
                 if(newVersion.contains("SNAPSHOT")){continue;}
+                if(groupId.equals("org.quickfixj")){continue;}
                 try {
                     logger.error("Downloading "+newId+" ...");
                     String newVersionDir = PomParser.DownloadMavenLib(newId);
