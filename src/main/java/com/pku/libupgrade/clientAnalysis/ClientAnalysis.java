@@ -24,7 +24,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static com.pku.apidiff.APIDiff.apiDiff;
-import static com.pku.apidiff.FindAdaptation.getAffectedCode;
 import static com.pku.libupgrade.PomParser.pomParse;
 import static com.pku.libupgrade.Utils.getFileLines;
 

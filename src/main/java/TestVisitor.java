@@ -76,7 +76,7 @@ public class TestVisitor extends ASTVisitor {
         apiTypeUsages.add(new TypeUsage(typeName,position));
 //        System.out.println(typeName);
 //        System.out.println(position);
-        System.out.println(node);
+//        System.out.println(node);
         return super.visit(node);
     }
 
@@ -96,6 +96,9 @@ public class TestVisitor extends ASTVisitor {
         int position  = node.getStartPosition();
         apiFieldUsages.add(new FieldUsage(typeName,fieldName,position));
         System.out.println(node);
+        System.out.println(typeName);
+        System.out.println(fieldName);
+        System.out.println(" ");
         return super.visit(node);
     }
 

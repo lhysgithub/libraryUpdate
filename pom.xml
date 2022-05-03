@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>groupId</groupId>
-    <artifactId>APIDiff</artifactId>
+    <artifactId>FindAdaptationv2</artifactId>
     <version>1.0</version>
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -268,7 +268,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        com.pku.apidiff.APIDiff
+                                        com.pku.apidiff.FindAdaptationv2
                                     </mainClass>
                                 </manifest>
                             </archive>

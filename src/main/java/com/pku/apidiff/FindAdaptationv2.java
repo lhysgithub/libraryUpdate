@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.util.*;
 
+import static com.pku.apidiff.CleanAdaptation.isNoneBreakingChange;
 import static com.pku.apidiff.CodeDiff.getFileCodeDiff;
 import static com.pku.apidiff.CodeDiff.getGitCodeDiff;
 import static com.pku.libupgrade.PomParser.USER_LOCAL_REPO;
@@ -30,10 +31,6 @@ public class FindAdaptationv2 {
     public static void main(String[] args) throws Exception {
         String breakingChangesDir = "breakingChanges1";
         File bcd = new File(breakingChangesDir);
-        File checkedBCFiles = new File("checkedBCFiles.txt");
-        if (!checkedBCFiles.exists()){checkedBCFiles.createNewFile();}
-        List<String> checkedBCFilesList = getFileLines(checkedBCFiles);
-        BufferedWriter bw = new BufferedWriter(new FileWriter(checkedBCFiles,false));
 
         Map<BreakChangeSet,Integer> bks = new HashMap<>();
         int w =0;
@@ -51,21 +48,37 @@ public class FindAdaptationv2 {
         }
         bks = sortByValue2Ascending(bks);
         // UML Diff
+        File checkedLibBCFiles = new File("checkedLibBCFiles.txt");
+        if (!checkedLibBCFiles.exists()){checkedLibBCFiles.createNewFile();}
+        List<String> checkedLibBCFilesList = getFileLines(checkedLibBCFiles);
+        BufferedWriter bwLib = new BufferedWriter(new FileWriter(checkedLibBCFiles,false));
         int k =0;
         int lengthBCS = bks.size();
         for (BreakChangeSet key:bks.keySet()) {
             k++;
+//            if(k<4989){continue;}
             logger.error("fetch lib "+k+"/"+lengthBCS+" BreakingChangeLibAndVersions...");
             String newLibId = key.newLibId;
             String oldLibId = key.oldLibId;
             String breakChangeFileName = breakingChangesDir+"/"+bks.get(key)+"_"+newLibId+"_"+oldLibId+".txt";
+            if (checkedLibBCFilesList.contains(breakChangeFileName)){bwLib.write(breakChangeFileName+"\n");bwLib.flush();continue;}
             List<String> breakingChanges = getBreakingChanges(breakChangeFileName);
             for (String breakingChange:breakingChanges){
+                if(isNoneBreakingChange(breakingChange)){continue;}
+                logger.error("find affected and adaptation for "+breakingChange);
                 getLibAdaptation(breakingChange,newLibId,oldLibId);
             }
+            bwLib.write(breakChangeFileName+"\n");
+            bwLib.flush();
         }
+        bwLib.close();
         // UML Diff end
 
+        // PKU Diff
+        File checkedBCFiles = new File("checkedBCFiles.txt");
+        if (!checkedBCFiles.exists()){checkedBCFiles.createNewFile();}
+        List<String> checkedBCFilesList = getFileLines(checkedBCFiles);
+        BufferedWriter bw = new BufferedWriter(new FileWriter(checkedBCFiles,false));
         k =0;
         for (BreakChangeSet key:bks.keySet()){
             k++;
@@ -77,6 +90,7 @@ public class FindAdaptationv2 {
 //            logger.error("getBreakingChangeSignatures..."+ breakChangeFileName);
             List<String> breakingChanges = getBreakingChanges(breakChangeFileName);
             for (String breakingChange:breakingChanges){
+                if(isNoneBreakingChange(breakingChange)){continue;}
                 logger.error("find affected and adaptation for "+breakingChange);
                 getAdaptation(breakingChange,newLibId,oldLibId);
             }
@@ -84,6 +98,7 @@ public class FindAdaptationv2 {
             bw.flush();
         }
         bw.close();
+        // PKU Diff end
     }
 
     public static void getLibAdaptation(String breakingChange,String newLibId,String oldLibId) throws Exception {
@@ -92,7 +107,9 @@ public class FindAdaptationv2 {
         String target = breakingChange.split("<code>")[1].split("</code>")[0];
         String parent;
         if(breakingChangeSuperType.equals("Type")){
-            String ApiUsage = target;
+            String[] targetList = target.split("\\.");
+            String targetSimpleName = targetList[targetList.length-1];
+            String ApiUsage = targetSimpleName;
             Map<String, List<TypeUsage>> oldVersion3rdLibTypeUsage = setTypeUsagesFromJson(oldLibId);
             getTypeAdaptationFromLib(oldVersion3rdLibTypeUsage, ApiUsage, oldLibId, newLibId,breakingChangeSuperType,breakingChangeSubType);
         }
@@ -106,7 +123,9 @@ public class FindAdaptationv2 {
         }
         else if(breakingChangeSuperType.equals("Field")){
             parent = breakingChange.split("<code>")[2].split("</code>")[0];
-            String ApiUsage = target + " " + parent;
+            String[] parentList = parent.split("\\.");
+            String parentSimpleName = parentList[parentList.length-1];
+            String ApiUsage = parentSimpleName + " " + target;
             Map<String, List<FieldUsage>> oldVersion3rdLibFieldUsage = setFieldUsagesFromJson(oldLibId);
             getFieldAdaptationFromLib(oldVersion3rdLibFieldUsage, ApiUsage, oldLibId, newLibId,breakingChangeSuperType,breakingChangeSubType);
         }
@@ -117,7 +136,7 @@ public class FindAdaptationv2 {
             for(Caller callSig:oldVersion3rdLibCallers.get(key)){
                 if (isEqualSignatureString(callSig.signature,ApiUsage)){// find affected code
                     String newProjectPath = getProjectPath(newLibId);
-                    String filePathInProject = key.split("sources")[1];
+                    String filePathInProject = key.split("-sources")[1];
                     getFileCodeDiff(key,newProjectPath+filePathInProject,20,callSig.position,breakingChangeSuperType+":"+breakingChangeSubType+":"+callSig.signature,oldLibId,newLibId);
                 }
             }
@@ -129,7 +148,7 @@ public class FindAdaptationv2 {
             for(TypeUsage typeUsage:oldVersion3rdLibTypeUsages.get(key)){
                 if (ApiUsage.equals(typeUsage.typeName)){// find affected code
                     String newProjectPath = getProjectPath(newLibId);
-                    String filePathInProject = key.split("sources")[1];
+                    String filePathInProject = key.split("-sources")[1];
                     getFileCodeDiff(key,newProjectPath+filePathInProject,20,typeUsage.position,breakingChangeSuperType+":"+breakingChangeSubType+":"+typeUsage.typeName,oldLibId,newLibId);
                 }
             }
@@ -141,7 +160,7 @@ public class FindAdaptationv2 {
             for(FieldUsage fieldUsage:oldVersion3rdLibFieldUsages.get(key)){
                 if (ApiUsage.equals(fieldUsage.typeName+" "+fieldUsage.fieldName)){// find affected code
                     String newProjectPath = getProjectPath(newLibId);
-                    String filePathInProject = key.split("sources")[1];
+                    String filePathInProject = key.split("-sources")[1];
                     getFileCodeDiff(key,newProjectPath+filePathInProject,20,fieldUsage.position,breakingChangeSuperType+":"+breakingChangeSubType+":"+fieldUsage.typeName+" "+fieldUsage.fieldName,oldLibId,newLibId);
                 }
             }
@@ -847,7 +866,9 @@ public class FindAdaptationv2 {
             // Find Affected position
             if (breakingChangeSuperType.equals("Type")){
                 if(breakingChangeSubType.contains("Remove Type")){
-                    affectedCodes = retryGetAffectedApiUsageDiffCommit(target,d,0,1,breakingChangeSuperType,breakingChangeSubType);
+                    String[] targetList = target.split("\\.");
+                    String targetSimpleName = targetList[targetList.length-1];
+                    affectedCodes = retryGetAffectedApiUsageDiffCommit(targetSimpleName,d,0,1,breakingChangeSuperType,breakingChangeSubType);
                 }
             }
             else if (breakingChangeSuperType.equals("Method")){
@@ -860,8 +881,10 @@ public class FindAdaptationv2 {
             }
             else {
                 parent = breakingChange.split("<code>")[2].split("</code>")[0];
+                String[] parentList = parent.split("\\.");
+                String parentSimpleName = parentList[parentList.length-1];
                 if(breakingChangeSubType.contains("Remove Field")){
-                    affectedCodes = retryGetAffectedApiUsageDiffCommit(target+" "+parent,d,0,1,breakingChangeSuperType,breakingChangeSubType);
+                    affectedCodes = retryGetAffectedApiUsageDiffCommit(parentSimpleName+" "+target,d,0,1,breakingChangeSuperType,breakingChangeSubType);
                 }
             }
             // Extract Adaptation

@@ -2,7 +2,6 @@ package com.pku.libupgrade;
 
 import com.csvreader.CsvReader;
 import com.pku.apidiff.APIDiff;
-import com.pku.apidiff.FindAdaptation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,6 +10,8 @@ import static com.pku.libupgrade.PomParser.USER_LOCAL_REPO;
 
 import java.io.*;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -27,6 +28,29 @@ public class Utils {
         }
         PomParser pomParser = new PomParser(localRepo, remoteRepos);
         return pomParser.readOutLibraries2(pom);
+    }
+
+    public static boolean isGreater (String version1,String version2){
+        String[] versionList1 = version1.split("\\.");
+        String[] versionList2 = version2.split("\\.");
+        String regEx="[^0-9]";
+        Pattern p = Pattern.compile(regEx);
+//        Matcher m = p.matcher(a);
+//        System.out.println( m.replaceAll("").trim());
+        for(int i=0;i< versionList1.length;i++){
+//            System.out.println(versionList1[i]);
+//            System.out.println(versionList2[i]);
+            if(versionList1[i].equals("0-rc-202107030819")){return false;}
+            if(versionList1[i].equals("RC1")){return false;}
+            if(versionList2[i].equals("Final")){return false;}
+            String number1s = p.matcher(versionList1[i]).replaceAll("");
+            String number2s = p.matcher(versionList2[i]).replaceAll("");
+            int number1 = Integer.parseInt(number1s);
+            int number2 = Integer.parseInt(number2s);
+            if (number1 == number2){continue;}
+            return number1 > number2;
+        }
+        return false;
     }
 
     public static boolean isProjectExist(String projectName, String commitDiffPath) throws IOException {
@@ -113,8 +137,8 @@ public class Utils {
 //                }
             }
 //            counter = sortByValue2(counter);
-//            versionPairCounter = sortByValue2(versionPairCounter);
-            versionPairCounter = sortByValue2Ascending(versionPairCounter);
+            versionPairCounter = sortByValue2(versionPairCounter);
+//            versionPairCounter = sortByValue2Ascending(versionPairCounter);
 //            groupIDCounter = sortByValue2(groupIDCounter);
 //            System.out.println("GroupID + ArtifactID: "+counter);
 //            System.out.println("versionPairCounter: "+versionPairCounter);
@@ -232,6 +256,7 @@ public class Utils {
                 if(oldVersion.contains("SNAPSHOT")){continue;}
                 if(newVersion.contains("SNAPSHOT")){continue;}
                 if(groupId.equals("org.quickfixj")){continue;}
+                if(groupId.equals("org.jooq")){continue;}
                 try {
                     logger.error("Downloading "+newId+" ...");
                     String newVersionDir = PomParser.DownloadMavenLib(newId);
