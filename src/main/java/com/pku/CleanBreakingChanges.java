@@ -1,4 +1,4 @@
-package com.pku.apidiff;
+package com.pku;
 
 import java.io.File;
 import java.util.Objects;

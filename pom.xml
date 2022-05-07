@@ -193,6 +193,13 @@
             <version>4.1.1</version>
             <type>pom</type>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/com.github.mpkorstanje/simmetrics-core -->
+        <dependency>
+            <groupId>com.github.mpkorstanje</groupId>
+            <artifactId>simmetrics-core</artifactId>
+            <version>4.1.1</version>
+        </dependency>
+
 
 
 

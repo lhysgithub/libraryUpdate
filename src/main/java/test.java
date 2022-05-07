@@ -1,7 +1,10 @@
+import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.JavaCore;
-import org.eclipse.jdt.core.dom.AST;
-import org.eclipse.jdt.core.dom.ASTParser;
-import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.*;
+import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
+import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
+import org.eclipse.text.edits.TextEdit;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -36,6 +39,40 @@ public class test {
             parser.setEnvironment(classpath, sources, new String[] { "UTF-8" },	true);
 //			parser.setEnvironment(null, null, null,	true);
             CompilationUnit compilationUnit = (CompilationUnit) parser.createAST(null);
+
+            // test reWrite
+//            IJavaElement o = compilationUnit.getJavaElement();
+//            if (compilationUnit.getJavaElement()!=null){
+//                ICompilationUnit iCompilationUnit = (ICompilationUnit) compilationUnit.getJavaElement();
+//                System.out.println(iCompilationUnit.getSource());
+//            }
+//
+//            // test change sourcecode
+//            // create a ASTRewrite
+//            AST ast = compilationUnit.getAST();
+//            ASTRewrite rewriter = ASTRewrite.create(ast);
+//
+//            // for getting insertion position
+//            TypeDeclaration typeDecl = (TypeDeclaration) compilationUnit.types().get(0);
+//            MethodDeclaration methodDecl = typeDecl.getMethods()[1];
+//            Block block = methodDecl.getBody();
+//            Statement test = (Statement) block.statements().get(0);
+//            Expression testE;
+//
+//            // create new statements for insertion
+//            MethodInvocation newInvocation = ast.newMethodInvocation();
+//            newInvocation.setName(ast.newSimpleName("add"));
+//            Statement newStatement = ast.newExpressionStatement(newInvocation);
+//
+//            //create ListRewrite
+//            ListRewrite listRewrite = rewriter.getListRewrite(block, Block.STATEMENTS_PROPERTY);
+//            listRewrite.insertFirst(newStatement, null);
+//            TextEdit edits = rewriter.rewriteAST();
+//
+//            System.out.println(block.statements());
+//            System.out.println(test);
+
+
             TestVisitor visitor = new TestVisitor();
             visitor.testField = "";
             visitor.hashCode();
