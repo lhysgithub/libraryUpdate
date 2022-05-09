@@ -16,9 +16,17 @@ public class testRewrite {
         ASTParser parser = ASTParser.newParser(AST.JLS8);
         parser.setSource(document.get().toCharArray());
         parser.setKind(ASTParser.K_STATEMENTS);
-
         final Block block = (Block) parser.createAST(null);
         ASTRewrite rewriter = ASTRewrite.create(block.getAST());
+
+        ASTParser parser1 = ASTParser.newParser(AST.JLS8);
+        parser1.setSource(document.get().toCharArray());
+        parser1.setKind(ASTParser.K_STATEMENTS);
+        final Block block1 = (Block) parser1.createAST(null);
+        AST ast1 =block1.getAST();
+        Statement oldStatement1 = (Statement) block1.statements().get(0);
+        MethodInvocation newInvocation1 = ast1.newMethodInvocation();
+        newInvocation1.setName(ast1.newSimpleName("add"));
 
         // for getting insertion position
         AST ast = block.getAST();
@@ -27,6 +35,7 @@ public class testRewrite {
         // create new statements for insertion
         MethodInvocation newInvocation = ast.newMethodInvocation();
         newInvocation.setName(ast.newSimpleName("add"));
+        newInvocation.setExpression((Expression) ASTNode.copySubtree(ast,newInvocation1));
         Statement newStatement = ast.newExpressionStatement(newInvocation);
 
         //create ListRewrite

@@ -14,12 +14,26 @@ public class CleanAdaptation {
         // filter the adaptations of non-breaking change
 //        cleanNonBreakingChange(oldDirPath);
         // extract affected and adaptation file pair
-        recurrentExtractAdaptation(oldDirPath,oldDirPath,newDirPath);
+//        recurrentExtractAdaptation(oldDirPath,oldDirPath,newDirPath);
         // extract adaptations of same BrokenAPI
 //        recurrentExtractAdaptationsOfSameBrokenAPI(newDirPath,newDirPath,thirdDirPath);
         // change view
         recurrentExtractAdaptationsOfSameBrokenAPIWithOtherView(newDirPath,newDirPath,thirdDirPath);
+        // change view
+        recurrentExtractAdaptationsWithFiles(thirdDirPath,thirdDirPath,fourthDirPath);
     }
+    public static void recurrentExtractAdaptationsWithFiles(String filePath,String oldDirPath,String newDirPath) throws IOException {
+        File file = new File(filePath);
+        if (file.isDirectory()){
+            for(File f : Objects.requireNonNull(file.listFiles())){
+                recurrentExtractAdaptationsWithFiles(f.getAbsolutePath(),oldDirPath,newDirPath); // 遍历oldDir的java file。
+            }
+        }
+        else if (file.getName().contains(".java")){
+            copyNewFile(file.getAbsolutePath(),oldDirPath,newDirPath);
+        }
+    }
+
     public static void recurrentExtractAdaptation(String filePath,String oldDirPath,String newDirPath) throws IOException {
         File file = new File(filePath);
         if (file.isDirectory()){
@@ -85,21 +99,27 @@ public class CleanAdaptation {
 //            String oldBrokenAPIName = "";
             File oldFile = null;
             String brokenType = "";
+            String brokenSubType = "";
             File newVersionFile = null;
             Boolean isFoundAdaptationsOfSameBrokenAPI = false;
-            if (Objects.requireNonNull(file.listFiles()).length ==0 || Objects.requireNonNull(file.listFiles()).length==1 && Objects.requireNonNull(file.listFiles())[0].isFile()) return;
+            int filesLength = Objects.requireNonNull(file.listFiles()).length;
+            int index = 0;
+            if (filesLength ==0 || filesLength ==1 && Objects.requireNonNull(file.listFiles())[0].isFile()) return;
             for(File f : Objects.requireNonNull(file.listFiles())){
+                index++;
                 if (f.isDirectory()){ recurrentExtractAdaptationsOfSameBrokenAPIWithOtherView(f.getAbsolutePath(),oldDirPath,newDirPath); } // 遍历Dir的java file。
                 else if (f.getName().contains(".java")){
-//                    brokenType = f.getName().split("_")[0];
+                    brokenType = f.getName().split("_")[0];
+                    brokenSubType = f.getName().split("_")[1];
 //                    currentBrokenAPISignature = f.getName().split(":")[2].split("_")[0]; // for linux
-                    currentBrokenAPISignature = f.getName().split("_")[2]; // for windows
-                    char[] signatureChars = currentBrokenAPISignature.toCharArray();
-//                    System.out.println(f.getName());
-                    for(int i =3;signatureChars.length==0 || signatureChars[signatureChars.length-1]==' ';i++){// for windows
-                        currentBrokenAPISignature = currentBrokenAPISignature +"_"+f.getName().split("_")[i];
-                        signatureChars = currentBrokenAPISignature.toCharArray();
-                    }
+//                    currentBrokenAPISignature = f.getName().split("_")[2]; // for windows
+//                    char[] signatureChars = currentBrokenAPISignature.toCharArray();
+////                    System.out.println(f.getName());
+//                    for(int i =3;signatureChars.length==0 || signatureChars[signatureChars.length-1]==' ';i++){// for windows
+//                        currentBrokenAPISignature = currentBrokenAPISignature +"_"+f.getName().split("_")[i];
+//                        signatureChars = currentBrokenAPISignature.toCharArray();
+//                    }
+                    currentBrokenAPISignature = f.getName().split("_[0-9]+")[0].replace(brokenType+"_","").replace(brokenSubType+"_",""); // for windows
 //                    String[] brokenSignature = currentBrokenAPISignature.split(" ");
 //                    if (brokenType.equals("Method")){currentBrokenAPIName = brokenSignature[1];}
 //                    else{currentBrokenAPIName = brokenSignature[0];}
@@ -110,12 +130,13 @@ public class CleanAdaptation {
                         isFoundAdaptationsOfSameBrokenAPI = true;
                         // extract adaptations of same broken api
                     }else{
-                        oldBrokenAPISignature = currentBrokenAPISignature;
 //                        oldBrokenAPIName = currentBrokenAPIName;
-                        if (oldFile==null){continue;} // fist epoch, continue
+                        if (oldFile==null){oldBrokenAPISignature = currentBrokenAPISignature;oldFile = newVersionFile;continue;} // fist epoch, continue
                         if(!isFoundAdaptationsOfSameBrokenAPI){oldFile.delete();} // find another broken API and the latest adaptation is not in useful adaptations set
                         isFoundAdaptationsOfSameBrokenAPI = false;
+                        if(index==filesLength){newVersionFile.delete();}
                     }
+                    oldBrokenAPISignature = currentBrokenAPISignature;
                 }
                 oldFile = newVersionFile;
             }
@@ -129,10 +150,24 @@ public class CleanAdaptation {
         File newJavaFileInnerDirFile = new File(javaFileInnerDirPath);
         if(!newJavaFileInnerDirFile.exists()){newJavaFileInnerDirFile.mkdirs();}
         BufferedReader br = new BufferedReader(new FileReader(file));
-        if(javaFileInnerPath.equals("d:\\dataset3\\adaptation\\library\\com.couchbase.client_core-io_1.7.19_1.7.2\\Field_ Remove Field _ConcreteBeanPropertyBase \\propertyFormat_49_com.couchbase.client.deps.com.fasterxml.jackson.databind.introspect.ConcreteBeanPropertyBase.java")){
-            System.out.println("find");
+        BufferedWriter bw = new BufferedWriter(new FileWriter(newJavaFile));
+        String line;
+        while ((line = br.readLine()) != null){
+            bw.write(line+"\n");
+            bw.flush();
         }
-
+        bw.close();
+        br.close();
+        return newJavaFile;
+    }
+    public static File copyNewFile(String filePath, String oldDirPath, String newDirPath) throws IOException {
+        File file = new File(filePath);
+        String javaFileInnerPath = filePath.replace(oldDirPath,newDirPath);
+        File newJavaFile = new File(javaFileInnerPath);
+        String javaFileInnerDirPath = newJavaFile.getParent();
+        File newJavaFileInnerDirFile = new File(javaFileInnerDirPath);
+        if(!newJavaFileInnerDirFile.exists()){newJavaFileInnerDirFile.mkdirs();}
+        BufferedReader br = new BufferedReader(new FileReader(file));
         BufferedWriter bw = new BufferedWriter(new FileWriter(newJavaFile));
         String line;
         while ((line = br.readLine()) != null){

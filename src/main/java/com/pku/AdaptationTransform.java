@@ -1,12 +1,16 @@
 package com.pku;
 
+import com.pku.apidiff.FindAdaptationv2;
 import org.eclipse.jdt.core.dom.*;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.text.edits.TextEdit;
+import org.eclipse.text.edits.TextEditGroup;
 import org.simmetrics.StringMetric;
 import org.simmetrics.metrics.StringMetrics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.LinkedList;
@@ -17,15 +21,47 @@ import java.util.Objects;
 public class AdaptationTransform {
     static String oldDirPath = "";
     static String newDirPath = "";
+    static double sum = 0;
+    static int number = 0;
+    static int correctNumber = 0;
+    static int parseErrorNumber = 0;
+    public static Logger logger = LoggerFactory.getLogger(AdaptationTransform.class);
+    public static void recurrentComputeSimilarity(String dirPath) {
+        File dir = new File(dirPath);
+        for(File f: Objects.requireNonNull(dir.listFiles())){
+            if (f.isDirectory()){recurrentComputeSimilarity(f.getAbsolutePath());}
+            else {
+                for(File f2: Objects.requireNonNull(dir.listFiles())){
+                    if (f2.isDirectory()){continue;}
+                    else if(f.getName().equals(f2.getName())){continue;}
+                    else{
+                        try {
+                            float similarity = generateAndEvaluateAdaptation(f.getAbsolutePath(),f2.getAbsolutePath());
+                            sum += similarity;
+                            number +=1;
+                            if (similarity>=0.99) correctNumber++;
+                            logger.error("number "+number+" correctNumber "+correctNumber+" similarity "+similarity+" avgSim "+sum/number+" sum "+sum+" f1Path "+f.getAbsolutePath()+" f2Path "+f2.getAbsolutePath());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                    }
+                }
+            }
+        }
+
+    }
     public static void main(String[] args) throws IOException {
         // find adaptations of same broken api
 //        recurrentExtractAdaptationsOfSameBrokenAPI(oldDirPath,oldDirPath,oldDirPath);
 
         // todo: circulate select adaptationA and adaptationB in a adaptations set
-        String adaptationAPath = "D:\\dataset3\\adaptation\\library\\org.yaml_snakeyaml_1.4_1.16\\Method_ Change in Return Type Method _null getTag Node\\178_org.yaml.snakeyaml.serializer.Serializer.java"; // absolutely  path
-        String adaptationBPath = "";
-        float similarity = generateAndEvaluateAdaptation(adaptationAPath,adaptationBPath);
-        System.out.println("similarity: "+similarity);
+//        String adaptationAPath = "D:\\dataset3\\adaptation\\library\\com.android.tools.lint_lint-api_24.5.0_25.3.0\\Method_ Remove Method _null getResourceRepository Project boolean boolean LintClient\\1043_com.android.tools.lint.detector.api.LintUtils.java"; // absolutely  path
+//        String adaptationBPath = "D:\\dataset3\\adaptation\\library\\com.android.tools.lint_lint-api_24.5.0_25.3.0\\Method_ Remove Method _null getResourceRepository Project boolean boolean LintClient\\1117_com.android.tools.lint.detector.api.LintUtils.java";
+//        float similarity = generateAndEvaluateAdaptation(adaptationAPath,adaptationBPath);
+        recurrentComputeSimilarity("D:\\dataset3");
+        System.out.println("similarity: "+sum/number);
+        logger.error("similarity "+sum/number+" parseErrorNumber "+parseErrorNumber);
         // read java file and remove prefix (-,+) and creat ast ? yes for the find apis and parameters
 
         // find broken api
@@ -61,9 +97,10 @@ public class AdaptationTransform {
         int adaptationALength = adaptationASource.split("\n").length;
         int affectedBLength = affectedBSource.split("\n").length;
         int adaptationBLength = adaptationBSource.split("\n").length;
-        String brokenType = affectedAFile.getParent().split("_")[0]; // for windows
-        String brokenSubType = affectedAFile.getParent().split("_")[1]; // for windows
-        String brokenApi = affectedAFile.getParent().replace(brokenType+"_","").replace(brokenSubType+"_","");
+        File parentFile = new File( affectedAFile.getParent());
+        String brokenType = parentFile.getName().split("_")[0]; // for windows
+        String brokenSubType = parentFile.getName().split("_")[1]; // for windows
+        String brokenApi = parentFile.getName().replace(brokenType+"_","").replace(brokenSubType+"_","");
         String adaptationType = "";
         String generatedAffectedSource = "";
         String generatedAdaptationSource = "";
@@ -95,8 +132,15 @@ public class AdaptationTransform {
                 generatedAdaptationLength = adaptationALength;
                 generatedAffectedSource = getGeneratedAffectedSource(generatedAffectedLength,affectedASource,affectedBSource);
                 // todo: find broken api and map parameters and return variable
-                generatedAdaptationSource = getAlterAPIGeneratedAdaptationSource(generatedAdaptationLength, brokenApi,
-                        affectedASource, affectedBSource, generatedAffectedSource,adaptationASource,adaptationBSource);
+                try {
+                    generatedAdaptationSource = getAlterAPIGeneratedAdaptationSource(generatedAdaptationLength, brokenApi,
+                            affectedASource, affectedBSource, generatedAffectedSource,adaptationASource,adaptationBSource);
+                }
+                catch (Exception e){
+                    e.printStackTrace();
+                    generatedAdaptationSource = adaptationASource;
+                    parseErrorNumber++;
+                }
             }
             else{
                 generatedAffectedLength = affectedALength;
@@ -107,10 +151,20 @@ public class AdaptationTransform {
         }
         else if(brokenType.contains("Type")){
             String brokenTypeName = brokenApi;
+
+            generatedAffectedLength = affectedALength;
+            generatedAdaptationLength = adaptationALength;
+            generatedAffectedSource = getGeneratedAffectedSource(generatedAffectedLength,affectedASource,affectedBSource);
+            generatedAdaptationSource = adaptationASource;
         }
         else if(brokenType.contains("Filed")){
             String brokenTypeName = brokenApi.split(" ")[1];
             String brokenFiledName = brokenApi.split(" ")[0];
+
+            generatedAffectedLength = affectedALength;
+            generatedAdaptationLength = adaptationALength;
+            generatedAffectedSource = getGeneratedAffectedSource(generatedAffectedLength,affectedASource,affectedBSource);
+            generatedAdaptationSource = adaptationASource;
         }
         // remove blank space chart than evaluate similarity. String.replaceAll("\\s*","")
 
@@ -118,7 +172,7 @@ public class AdaptationTransform {
 
         // generate delete code
         // generate adding code - need source code?
-        String str1 = (affectedASource + adaptationASource).replaceAll("\\s*","");
+        String str1 = (affectedBSource + adaptationBSource).replaceAll("\\s*","");
         String str2 = (generatedAffectedSource + generatedAdaptationSource).replaceAll("\\s*","");
 //        StringMetric metric = StringMetrics.cosineSimilarity();
         StringMetric metric1 = StringMetrics.levenshtein();
@@ -126,19 +180,25 @@ public class AdaptationTransform {
     }
 
     public static class AlterMethodVisitor extends ASTVisitor {
-        public String targetMethodName = "";
-        public List<Parameter> targetParameters=null;
+        public APIUsage targetApiUsage = null;
         public APIUsage apiUsage=null;
         @Override
         public boolean visit(MethodInvocation node) { // for Method broken api
+            List<Parameter> targetParameters = targetApiUsage.parameters;
+            String targetParentExpression = targetApiUsage.parentExpression;
             String methodName = node.getName().toString();
+            String parentExpression;
+            if(node.getExpression()==null){parentExpression = "null";}
+            else{parentExpression = node.getExpression().toString();}
             double ratio = 0.0;
             int hitCount = 0;
             int targetParameterLength = targetParameters.size();
             List argumentsAST = node.arguments();
             List<Parameter> parameters = new LinkedList<>();
             int parameterLength = argumentsAST.size();
-            int lagerLength = Math.max(targetParameterLength, parameterLength);
+            int lagerLength = 1 + Math.max(targetParameterLength, parameterLength);
+            // parent expression
+            if (targetParentExpression.equals(parentExpression)){hitCount++;}
             // parameter list
             for (int i=0 ; i<parameterLength ; i++){
                 if(argumentsAST.get(i) instanceof Expression){
@@ -159,9 +219,48 @@ public class AdaptationTransform {
                 }
             }
             ratio= hitCount*1.0/lagerLength;
-            if(ratio>0.5){apiUsage = new APIUsage(methodName,parameters);}// 超参
+            if(ratio>=0.3){apiUsage = new APIUsage(methodName,parameters,parentExpression);}// 超参
             return super.visit(node);
         }
+//        public boolean visit(ConstructorInvocation node) { // for Method broken api
+//            List<Parameter> targetParameters = targetApiUsage.parameters;
+//            String targetParentExpression = targetApiUsage.parentExpression;
+//            String methodName = node.getName().toString();
+//            String parentExpression;
+//            if(node.getExpression()==null){parentExpression = "null";}
+//            else{parentExpression = node.getExpression().toString();}
+//            double ratio = 0.0;
+//            int hitCount = 0;
+//            int targetParameterLength = targetParameters.size();
+//            List argumentsAST = node.arguments();
+//            List<Parameter> parameters = new LinkedList<>();
+//            int parameterLength = argumentsAST.size();
+//            int lagerLength = 1 + Math.max(targetParameterLength, parameterLength);
+//            // parent expression
+//            if (targetParentExpression.equals(parentExpression)){hitCount++;}
+//            // parameter list
+//            for (int i=0 ; i<parameterLength ; i++){
+//                if(argumentsAST.get(i) instanceof Expression){
+//                    Expression exp = (Expression) argumentsAST.get(i);
+//                    String parameterName = exp.toString();
+//                    int index = -1;
+//                    String type = "";
+//                    int oldHitCount= hitCount;
+//                    for(Parameter p:targetParameters){
+//                        if(p.content.equals(parameterName)){
+//                            hitCount++;
+//                            index = targetParameters.indexOf(p);
+//                            break;
+//                        }
+//                    }
+//                    if (oldHitCount==hitCount){parameters.add(new Parameter("new",parameterName,index));}
+//                    else {parameters.add(new Parameter("reserve",parameterName,index));}
+//                }
+//            }
+//            ratio= hitCount*1.0/lagerLength;
+//            if(ratio>=0.3){apiUsage = new APIUsage(methodName,parameters,parentExpression);}// 超参
+//            return super.visit(node);
+//        }
     }
     public static class BrokenMethodVisitor extends ASTVisitor {
         public String targetMethodName = "";
@@ -169,6 +268,9 @@ public class AdaptationTransform {
         @Override
         public boolean visit(MethodInvocation node) { // for Method broken api
             String methodName = node.getName().toString();
+            String parentExpression;
+            if(node.getExpression()==null){parentExpression = "null";}
+            else{parentExpression = node.getExpression().toString();}
             if (methodName.equals(targetMethodName)){
                 // parameter list
                 List argumentsAST = node.arguments();
@@ -180,7 +282,7 @@ public class AdaptationTransform {
                         parameters.add(new Parameter("unknown",exp.toString(),i));
                     }
                 }
-                apiUsage = new APIUsage(methodName,parameters);
+                apiUsage = new APIUsage(methodName,parameters,parentExpression);
             }
             return super.visit(node);
         }
@@ -223,9 +325,11 @@ public class AdaptationTransform {
     public static class APIUsage{
         public String name; // method nmae
         public List<Parameter> parameters; // name of parameter
-        APIUsage(String _name,List<Parameter> _parameters){
+        public String parentExpression;
+        APIUsage(String _name,List<Parameter> _parameters,String _parentExpression){
             name = _name;
             parameters = _parameters;
+            parentExpression = _parentExpression;
         }
     }
 
@@ -236,7 +340,7 @@ public class AdaptationTransform {
         APIUsage affectedAUsage =  getAPIUsageFromMethodName(brokenMethodName,affectedASource);
         APIUsage generatedAffectedUsage =  getAPIUsageFromMethodName(brokenMethodName,generatedAffectedSource);
         APIUsage adaptationAUsage =  getAPIUsageFromMethodName(brokenMethodName,adaptationASource);
-        if (adaptationAUsage==null){adaptationAUsage =  getAPIUsageFromParametersName(affectedAUsage.name,affectedAUsage.parameters,adaptationASource);}
+        if (adaptationAUsage==null){adaptationAUsage =  getAPIUsageFromParametersName(affectedAUsage,adaptationASource);}
         // generate
         APIUsage generatedAdaptationUsage = generatedMethodAPIUsage(generatedAffectedUsage,adaptationAUsage);
 
@@ -256,8 +360,20 @@ public class AdaptationTransform {
         emv.ast = ast;
         emv.document =document;
         emv.block = block;
+        emv.oldAPIUsage = oldAPIUsage;
+        emv.newAPIUsage =newAPIUsage;
         block.accept(emv);
+        String result = document.get();
         return document.get();
+    }
+    public static MethodInvocation getMIFromString(AST ast,String exp){
+        MethodInvocation mi = ast.newMethodInvocation();
+        String name = exp.split("\\(")[0];
+        String parameters = exp.replace(name,"").replace("\\)","");
+//        if (parameters.contains(","))
+        if (name.contains("\\.")){mi.setName((SimpleName) ast.newName(name));}
+        else { mi.setName(ast.newSimpleName(name));}
+        return mi;
     }
     public static class EidtMethodVisitor extends ASTVisitor {
         public ASTRewrite rewriter = null;
@@ -270,30 +386,58 @@ public class AdaptationTransform {
         public boolean visit(MethodInvocation node) { // for Method broken api
             String brokenMethodName = oldAPIUsage.name;
             String methodName = node.getName().toString();
+            String parentExpression = newAPIUsage.parentExpression;
             if (methodName.equals(brokenMethodName)){
                 // create new statements for insertion
                 MethodInvocation newInvocation = ast.newMethodInvocation();
                 newInvocation.setName(ast.newSimpleName(newAPIUsage.name));
+
+//                Expression exp;
+//                if (parentExpression.contains("(")){exp = getMIFromString(ast,parentExpression);}
+//                else{exp = ast.newName(parentExpression);}
                 ASTParser parserT = ASTParser.newParser(AST.JLS8);
                 parserT.setKind(ASTParser.K_EXPRESSION);
+                parserT.setSource(parentExpression.toCharArray()); // read java file and remove prefix (-,+)
+                Expression pExpression = (Expression) parserT.createAST(null); // creat ast
+                newInvocation.setExpression((Expression) ASTNode.copySubtree(ast,pExpression));
+//                newInvocation.setExpression(exp);
                 for (Parameter p:newAPIUsage.parameters){
                     int i = newAPIUsage.parameters.indexOf(p);
                     if(p.index==-1){
-                        parserT.setSource(p.content.toCharArray()); // read java file and remove prefix (-,+)
-                        Expression expression = (Expression) parserT.createAST(null); // creat ast
-                        newInvocation.arguments().add(i,expression);
+                        String source = p.content;
+//                        Expression parameterName = ast.newName(source);
+                        ASTParser parserT1 = ASTParser.newParser(AST.JLS8);
+                        parserT1.setKind(ASTParser.K_EXPRESSION);
+                        parserT1.setSource(p.content.toCharArray()); // read java file and remove prefix (-,+)
+                        Expression expression = (Expression) parserT1.createAST(null); // creat ast
+                        newInvocation.arguments().add(i,(Expression) ASTNode.copySubtree(ast,expression));
                     }
                     else{
-                        parserT.setSource(oldAPIUsage.parameters.get(p.index).content.toCharArray()); // read java file and remove prefix (-,+)
-                        Expression expression = (Expression) parserT.createAST(null); // creat ast
-                        newInvocation.arguments().add(i,expression);
+                        String source = oldAPIUsage.parameters.get(p.index).content;
+//                        Expression parameterName;
+//                        if(source.equals("true")){parameterName = ast.newBooleanLiteral(true);}
+//                        else if (source.equals("false")){parameterName = ast.newBooleanLiteral(false);}
+//                        else if (source.contains("\\(")){parameterName = getMIFromString(ast,source);}
+//                        else {parameterName = ast.newName(source);}
+                        ASTParser parserT1 = ASTParser.newParser(AST.JLS8);
+                        parserT1.setKind(ASTParser.K_EXPRESSION);
+                        parserT1.setSource(oldAPIUsage.parameters.get(p.index).content.toCharArray()); // read java file and remove prefix (-,+)
+                        Expression expression = (Expression) parserT1.createAST(null); // creat ast
+                        newInvocation.arguments().add(i,(Expression) ASTNode.copySubtree(ast,expression));
                     }
                 }
-                ListRewrite listRewrite = rewriter.getListRewrite(block, Block.STATEMENTS_PROPERTY);
-                listRewrite.replace(node,newInvocation,null);
+//                ListRewrite listRewrite = rewriter.getListRewrite(block,Block.STATEMENTS_PROPERTY);
+//                listRewrite.replace(node,newInvocation,null);
+//                listRewrite.replace(node,ast.newMethodInvocation(),null);
+//                listRewrite.insertFirst(ast.newMethodInvocation(),null);
+//                listRewrite.insertFirst(newInvocation,null);
+                rewriter.replace(node,newInvocation,null);
                 TextEdit edits = rewriter.rewriteAST(document,null);
+//                TextEditGroup editGroup = edits.
                 try {
                     edits.apply(document);
+//                    String result = document.get();
+//                    System.out.println(result);
                 } catch (BadLocationException e) {
                     e.printStackTrace();
                 }
@@ -303,12 +447,13 @@ public class AdaptationTransform {
     }
     public static APIUsage generatedMethodAPIUsage(APIUsage generatedAffectedUsage,APIUsage adaptationAUsage){
         String methodName = adaptationAUsage.name;
+        String parentExpression = generatedAffectedUsage.parentExpression;
         List<Parameter> parameters = new LinkedList<>();
         for (Parameter p:adaptationAUsage.parameters){
             if (p.index==-1){parameters.add(p);}
             else {parameters.add(generatedAffectedUsage.parameters.get(p.index));}
         }
-        return new APIUsage(methodName,parameters);
+        return new APIUsage(methodName,parameters,parentExpression);
     }
 
     // read java file and remove prefix (-,+) and creat ast ? yes for the find apis and parameters
@@ -322,14 +467,13 @@ public class AdaptationTransform {
         block.accept(bmv);
         return bmv.apiUsage;
     }
-    public static APIUsage getAPIUsageFromParametersName(String brokenMethodName, List<Parameter> parameters,String sourcecode){
+    public static APIUsage getAPIUsageFromParametersName(APIUsage targetApiUsage,String sourcecode){
         ASTParser parser = ASTParser.newParser(AST.JLS8);
         parser.setSource(sourcecode.toCharArray()); // read java file and remove prefix (-,+)
         parser.setKind(ASTParser.K_STATEMENTS);
         Block block = (Block) parser.createAST(null); // creat ast
         AlterMethodVisitor amv = new AlterMethodVisitor();
-        amv.targetMethodName = brokenMethodName;
-        amv.targetParameters = parameters;
+        amv.targetApiUsage = targetApiUsage;
         block.accept(amv);
         return amv.apiUsage;
     }
